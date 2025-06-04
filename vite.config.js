@@ -15,4 +15,9 @@ export default defineConfig({
       ],
     },
   },
+  preview: {
+    host: "0.0.0.0",
+    port: 8829,
+    allowedHosts: ["flipbook.thefirstimpression.ai", "localhost", "127.0.0.1"],
+  },
 });
