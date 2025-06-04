@@ -533,10 +533,10 @@ const App = () => {
               )}
             </button>
 
-            <AudioRecorder
+            {/* <AudioRecorder
               permission={permission}
               setPermission={setPermission}
-            />
+            /> */}
           </div>
         </div>
       </div>
