@@ -130,7 +130,7 @@ const App = () => {
   const handleGotPointClick = (e, gotPoint) => {
     e.stopPropagation();
     setActiveGotPoint(activeGotPoint === gotPoint._id ? null : gotPoint._id);
-    // setSelectedPoint(null); // Close any other selected points
+    // setSelectedPoint(null); // 
   };
 
   const toggleVideoPlayBack = () => {
@@ -167,6 +167,7 @@ const App = () => {
       ".ogg",
       ".m4a",
       ".aac",
+
       ".flac",
       ".wma",
     ];
