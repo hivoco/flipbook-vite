@@ -2,15 +2,11 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import HTMLFlipBook from "react-pageflip";
 import Draggable from "react-draggable";
 import AudioRecorder from "./components/AudioRecorder";
-import { FaWhatsapp } from "react-icons/fa";
-
 import {
   ChevronLeft,
   ChevronRight,
   ExternalLink,
   Fullscreen,
-  Mail,
-  MessageCircle,
   Minus,
   Music,
   Play,
@@ -22,8 +18,6 @@ import {
 } from "lucide-react";
 import { BASE_URL } from "../constant";
 import YouTube from "react-youtube";
-import ContactWidget from "./components/ContactWidget";
-import { formatPhoneForWhatsApp, isEmail, isPhoneNumber, isWebsiteLink } from "./utility/LinkOpener";
 
 const App = () => {
   const bookRef = useRef();
@@ -34,7 +28,6 @@ const App = () => {
   const [audioSrc, setAudioSrc] = useState("");
 
   const [flipbookImages, setFlipbookImages] = useState([]);
-  const [contactInfo, setContactInfo] = useState();
   const [flipbookName, setFlipbookName] = useState("");
   const [playingMediaId, setPlayingMediaId] = useState(null);
 
@@ -79,10 +72,7 @@ const App = () => {
         `${BASE_URL}/brochure/brochure/${flipbookName}`
       );
       const data = await response.json();
-      console.log(data?.data?.contactInfo, "data");
-
       setFlipbookImages(data?.data?.images);
-      setContactInfo(data?.data?.contactInfo);
     } catch (error) {
       console.error("Error fetching flipbook data:", error);
     }
@@ -140,7 +130,7 @@ const App = () => {
   const handleGotPointClick = (e, gotPoint) => {
     e.stopPropagation();
     setActiveGotPoint(activeGotPoint === gotPoint._id ? null : gotPoint._id);
-    // setSelectedPoint(null); //
+    // setSelectedPoint(null); // 
   };
 
   const toggleVideoPlayBack = () => {
@@ -155,105 +145,50 @@ const App = () => {
     setVideoIsPlaying(!videoIsPlaying);
   };
 
-  // const isWebsiteLink = (url) => {
-  //   const websitePatterns = [
-  //     /^https?:\/\//i, // HTTP/HTTPS URLs
-  //   ];
+  const isWebsiteLink = (url) => {
+    const websitePatterns = [
+      /^https?:\/\//i, // HTTP/HTTPS URLs
+    ];
 
-  //   // Check if it's not a media file or YouTube
-  //   const isYoutube = url.includes("youtube.com") || url.includes("youtu.be");
-  //   const videoExtensions = [
-  //     ".mp4",
-  //     ".webm",
-  //     ".avi",
-  //     ".mov",
-  //     ".wmv",
-  //     ".flv",
-  //     ".mkv",
-  //   ];
-  //   const audioExtensions = [
-  //     ".mp3",
-  //     ".wav",
-  //     ".ogg",
-  //     ".m4a",
-  //     ".aac",
+    // Check if it's not a media file or YouTube
+    const isYoutube = url.includes("youtube.com") || url.includes("youtu.be");
+    const videoExtensions = [
+      ".mp4",
+      ".webm",
+      ".avi",
+      ".mov",
+      ".wmv",
+      ".flv",
+      ".mkv",
+    ];
+    const audioExtensions = [
+      ".mp3",
+      ".wav",
+      ".ogg",
+      ".m4a",
+      ".aac",
 
-  //     ".flac",
-  //     ".wma",
-  //   ];
-  //   const isVideo = videoExtensions.some((ext) =>
-  //     url.toLowerCase().includes(ext)
-  //   );
-  //   const isAudio = audioExtensions.some((ext) =>
-  //     url.toLowerCase().includes(ext)
-  //   );
+      ".flac",
+      ".wma",
+    ];
+    const isVideo = videoExtensions.some((ext) =>
+      url.toLowerCase().includes(ext)
+    );
+    const isAudio = audioExtensions.some((ext) =>
+      url.toLowerCase().includes(ext)
+    );
 
-  //   // It's a website link if it starts with http/https but is not YouTube, video, or audio
-  //   return (
-  //     websitePatterns.some((pattern) => pattern.test(url)) &&
-  //     !isYoutube &&
-  //     !isVideo &&
-  //     !isAudio
-  //   );
-  // };
+    // It's a website link if it starts with http/https but is not YouTube, video, or audio
+    return (
+      websitePatterns.some((pattern) => pattern.test(url)) &&
+      !isYoutube &&
+      !isVideo &&
+      !isAudio
+    );
+  };
 
-  // // Function to check if a string is a phone number
-  // const isPhoneNumber = (str) => {
-  //   // Remove all non-digit characters for validation
-  //   const digitsOnly = str.replace(/\D/g, "");
-
-  //   // Check various phone number patterns
-  //   const phonePatterns = [
-  //     /^\+?[\d\s\-\(\)]{7,15}$/, // General international format
-  //     /^\+?\d{1,4}[\s\-]?\(?\d{1,4}\)?[\s\-]?\d{1,4}[\s\-]?\d{1,9}$/, // Flexible format
-  //     /^[\+]?[1-9][\d]{0,15}$/, // Simple international format
-  //   ];
-
-  //   // Must have at least 7 digits and match a pattern
-  //   return (
-  //     digitsOnly.length >= 7 &&
-  //     digitsOnly.length <= 15 &&
-  //     phonePatterns.some((pattern) => pattern.test(str))
-  //   );
-  // };
-
-  // // Function to check if a string is an email
-  // const isEmail = (str) => {
-  //   const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  //   return emailPattern.test(str);
-  // };
-
-  // // Function to format phone number for WhatsApp
-  // const formatPhoneForWhatsApp = (phone) => {
-  //   // Remove all non-digit characters except +
-  //   let formatted = phone.replace(/[^\d+]/g, "");
-
-  //   // If it doesn't start with +, add it
-  //   if (!formatted.startsWith("+")) {
-  //     formatted = "+" + formatted;
-  //   }
-
-  //   return formatted;
-  // };
-
-  // Function to handle media (audio/video/youtube/website/phone/email) click
-  
+  // Function to handle media (audio/video/youtube/website) click
   const handleMediaClick = (mediaUrl, event) => {
-    // Check if it's a phone number
-    if (isPhoneNumber(mediaUrl)) {
-      const formattedPhone = formatPhoneForWhatsApp(mediaUrl);
-      const whatsappUrl = `https://wa.me/${formattedPhone.substring(1)}`; // Remove + for WhatsApp URL
-      window.open(whatsappUrl, "_blank", "noopener,noreferrer");
-      return;
-    }
-
-    // Check if it's an email
-    if (isEmail(mediaUrl)) {
-      const mailtoUrl = `mailto:${mediaUrl}`;
-      window.open(mailtoUrl, "_blank");
-      return;
-    }
-
     // Check if it's a website link
     if (isWebsiteLink(mediaUrl)) {
       window.open(mediaUrl, "_blank", "noopener,noreferrer");
@@ -325,7 +260,8 @@ const App = () => {
       console.error("Fetch failed:", err);
     }
   };
-  console.log(gotPoints, "got points");
+  console.log(gotPoints,'got points');
+  
 
   useEffect(() => {
     if (flipbookName) {
@@ -369,11 +305,11 @@ const App = () => {
   };
 
   return (
-    <div className="relative h-svh w-full flex flex-col overflow-hidden">
+    <div className="h-svh  w-full flex flex-col overflow-hidden">
       <div className="relative w-full flex-1 max-w-6xl mx-auto">
         <div
           ref={divRef}
-          className="relative h-full bg-teal-600 flex flex-col"
+          className="relative h-full bg-[#E94B7A] flex flex-col"
         >
           {/* Book Container - takes remaining space */}
           {/* p-2 sm:p-4 */}
@@ -387,14 +323,14 @@ const App = () => {
             >
               <HTMLFlipBook
                 // Mobile settings - full width
-                width={window.innerWidth < 640 ? window.innerWidth - 32 : 400}
+                width={window.innerWidth < 640 ? window.innerWidth - 32 : 1000}
                 height={
-                  window.innerWidth < 640 ? (window.innerWidth - 32) * 1.4 : 560
+                  window.innerWidth < 640 ? (window.innerWidth - 32) * 1.4 : 450
                 }
                 // Desktop settings
                 size="stretch"
                 //min width and height
-                minWidth={window.innerWidth < 640 ? window.innerWidth : 300}
+                minWidth={window.innerWidth < 640 ? window.innerWidth : 600}
                 minHeight={
                   window.innerWidth < 640 ? window.innerWidth * 1.4 : 420
                 }
@@ -402,13 +338,14 @@ const App = () => {
                 maxWidth={
                   window.innerWidth < 640
                     ? window.innerWidth - 16
-                    : (window.innerHeight - 70) / 1.4
+                    : 1000
                 }
                 maxHeight={
                   window.innerWidth < 640
                     ? window.innerHeight - 200
                     : window.innerHeight - 70
                 }
+
                 mobileScrollSupport={true}
                 onFlip={onFlip}
                 flippingTime={500}
@@ -451,17 +388,14 @@ const App = () => {
                         //       }}
                         //       onClick={(e) => {
                         //         handleMediaClick(obj?.link, e);
-
+                             
                         //       }}
-
+                             
                         //     />
 
+                          
                         //   </div>
                         // );
-                        const isWhatsapp = /^(\+91)?[6-9]\d{9}$/.test(obj?.link);
-                        // basic Indian number
-                        const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(obj?.link);
-
                         const isWebsite = isWebsiteLink(obj?.link);
                         const isYoutube =
                           obj?.link.includes("youtube.com") ||
@@ -478,28 +412,22 @@ const App = () => {
                         const isVideo = videoExtensions.some((ext) =>
                           obj?.link.toLowerCase().includes(ext)
                         );
+  
                         // Determine button color and icon
                         let buttonColor = "bg-blue-300 hover:bg-blue-600"; // Default for audio
-                        let icon = <Volume1 size={14} />;
-
-                        if (isWhatsapp) {
-                          buttonColor = "bg-green-600 hover:bg-green-700";
-                          icon = <FaWhatsapp size={14} />;
-                        } else if (isEmail) {
-                          buttonColor = "bg-red-700 hover:bg-red-800";
-                          icon = <Mail size={14} />;
-                        } else if (isWebsite) {
-                          buttonColor = "bg-green-500 hover:bg-green-600";
-                          icon = <ExternalLink size={14} />;
+                        let icon = <Volume1 size={8} />;
+  
+                        if (isWebsite) {
+                          buttonColor = "bg-green-500 hover:bg-green-600"; // Green for websites
+                          icon = <ExternalLink size={8} />;
                         } else if (isYoutube) {
-                          buttonColor = "bg-red-600 hover:bg-red-700";
-                          icon = <Play size={14} />;
+                          buttonColor = "bg-red-600 hover:bg-red-700"; // YouTube red
+                          icon = <Play size={8} />;
                         } else if (isVideo) {
-                          buttonColor = "bg-purple-500 hover:bg-purple-600";
-                          icon = <Play size={14} />;
+                          buttonColor = "bg-purple-500 hover:bg-purple-600"; // Purple for regular video
+                          icon = <Play size={8} />;
                         }
-                        
-
+  
                         return (
                           <div key={idx}>
                             <button
@@ -507,8 +435,10 @@ const App = () => {
                                 left: `${obj?.coordinates?.x}%`,
                                 top: `${obj?.coordinates.y}%`,
                               }}
-                              onClick={(e) => handleMediaClick(obj?.link, e)}
-                              className={`absolute shadow-lg w-6 h-6 pulse ${buttonColor} rounded-full flex items-center justify-center text-white transform -translate-x-1/2 -translate-y-1/2`}
+                              onClick={(e) =>
+                                handleMediaClick(obj?.link, e)
+                              }
+                              className={`absolute shadow-lg w-4 h-4 pulse ${buttonColor} rounded-full flex items-center justify-center text-white transform -translate-x-1/2 -translate-y-1/2`}
                               title={`${
                                 isWebsite
                                   ? "Open Website"
@@ -521,9 +451,10 @@ const App = () => {
                             >
                               <span>{icon}</span>
                             </button>
-                          </div>
-                        );
-                      })}
+                            </div>
+                        )
+  
+                     })}
                   </div>
                 ))}
               </HTMLFlipBook>
@@ -672,27 +603,6 @@ const App = () => {
           </div>
         </>
       )}
-
-      {/* {contactInfo && (
-        <div className="absolute z-50 bottom-6 right-6 bg-white shadow-2xl p-4 rounded-2xl flex flex-col gap-3 items-center">
-          <Mail
-            onClick={(e) => {
-              handleMediaClick(contactInfo?.email, e);
-            }}
-            className="text-red-600 hover:scale-110 transition-transform"
-            size={30}
-          />
-          <FaWhatsapp
-            onClick={(e) => {
-              handleMediaClick(contactInfo?.number, e);
-            }}
-            className="text-green-600 hover:scale-110 transition-transform"
-            size={30}
-          />
-        </div>
-      )} */}
-
-      {contactInfo && <ContactWidget contactInfo={contactInfo} handleMediaClick={handleMediaClick} />}
     </div>
   );
 };
