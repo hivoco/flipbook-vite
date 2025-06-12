@@ -1,19 +1,43 @@
 @import "tailwindcss";
 
-.blue{
-    background: #3652D9;
-  }
-.pulse {
-    animation: pulse-animation 2s infinite;
-  }
-  
+.blue {
+  background: #3652D9;
+}
 
-  @keyframes pulse-animation {
-    0% {
-      box-shadow: 0 0 0 0px rgba(0, 0, 0, 0.2);
-    }
-    100% {
-      box-shadow: 0 0 0 20px rgba(0, 0, 0, 0);
-    }
+.pulse {
+  animation: pulse-animation 2s infinite;
+}
+
+
+
+.pageLeft {
+  border-right: 0;
+  box-shadow: inset -7px 0 30px -7px rgba(0, 0, 0, .4);
+}
+
+.pageRight {
+  border-left: 0;
+  box-shadow: inset 7px 0 30px -7px rgba(0, 0, 0, .4);
+}
+
+.gradient-bg::before {
+    content: "";
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 10%;
+    height: 100%;
+    z-index: 50;
+    pointer-events: none;
+    background: linear-gradient(89.43deg, rgba(0, 0, 0, 0) 0.54%, rgba(0, 0, 0, 0.05) 27.67%, rgba(30, 30, 30, 0.5) 50.23%, rgba(0, 0, 0, 0.05) 75.75%, rgba(0, 0, 0, 0) 99.55%);
+}
+
+@keyframes pulse-animation {
+  0% {
+    box-shadow: 0 0 0 0px rgba(0, 0, 0, 0.2);
   }
-  
+
+  100% {
+    box-shadow: 0 0 0 20px rgba(0, 0, 0, 0);
+  }
+}

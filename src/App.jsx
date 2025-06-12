@@ -1,13 +1,14 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import HTMLFlipBook from "react-pageflip";
-import Draggable from "react-draggable";
 import AudioRecorder from "./components/AudioRecorder";
 import { FaWhatsapp } from "react-icons/fa";
 
 import {
   ChevronLeft,
   ChevronRight,
+  EllipsisVertical,
   ExternalLink,
+  FileBoxIcon,
   Fullscreen,
   Mail,
   MessageCircle,
@@ -20,18 +21,43 @@ import {
   VolumeX,
   X,
 } from "lucide-react";
+import { MdFullscreen, MdFullscreenExit } from "react-icons/md";
+import { FiRotateCw } from "react-icons/fi";
+
 import { BASE_URL } from "../constant";
 import YouTube from "react-youtube";
 import ContactWidget from "./components/ContactWidget";
-import { formatPhoneForWhatsApp, isEmail, isPhoneNumber, isWebsiteLink } from "./utility/LinkOpener";
+import {
+  formatPhoneForWhatsApp,
+  isEmail,
+  isPhoneNumber,
+  isWebsiteLink,
+} from "./utility/LinkOpener";
+import { useResizeRerender } from "./hooks/useResizeRerender";
+import MenuPopup from "./components/MenuPopup";
+import MultiShadowComponent from "./components/MultiShadowComponent";
+import Demo from "./components/MultiShadowComponent";
 
 const App = () => {
   const bookRef = useRef();
   const audioRef = useRef();
   const divRef = useRef();
   const videoRef = useRef();
-  const nodeRef = useRef(null);
+  const imgContainerRef = useRef(null);
+  const [imageContainerHeight, setImageContainerHeight] = useState(0);
+
+  useEffect(() => {
+    if (imgContainerRef?.current) {
+      setImageContainerHeight(imgContainerRef.current.clientHeight);
+    }
+  }, []);
+
   const [audioSrc, setAudioSrc] = useState("");
+  const [isPdfLandScape, setIsPdfLandScape] = useState(false);
+  //static for now change manually
+  const [visible, setVisible] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isOrientationPortrait, setIsOrientationPortrait] = useState(false);
 
   const [flipbookImages, setFlipbookImages] = useState([]);
   const [contactInfo, setContactInfo] = useState();
@@ -73,27 +99,28 @@ const App = () => {
     setFlipbookName(name);
   }, []);
 
-  const getFlipbookImages = async () => {
-    try {
-      const response = await fetch(
-        `${BASE_URL}/brochure/brochure/${flipbookName}`
-      );
-      const data = await response.json();
-      console.log(data?.data?.contactInfo, "data");
-
-      setFlipbookImages(data?.data?.images);
-      setContactInfo(data?.data?.contactInfo);
-    } catch (error) {
-      console.error("Error fetching flipbook data:", error);
-    }
-  };
-
   useEffect(() => {
-    // setTotalPages(pages.length);
-    if (flipbookName) {
-      getFlipbookImages();
-    }
-  }, [flipbookName]);
+    const handler = () => {
+      setIsOrientationPortrait(
+        screen.orientation.type.includes("landscape") ? false : true
+      );
+    };
+
+    handler(); // runs on page load  once only
+
+    screen.orientation.addEventListener("change", handler); // runs on orientation change only
+
+    return () => {
+      screen.orientation.removeEventListener("change", handler);
+    };
+  }, []);
+
+  // useEffect(() => {
+  //   // setTotalPages(pages.length);
+  //   if (flipbookName) {
+  //     getFlipbookImages();
+  //   }
+  // }, [flipbookName]);
 
   const onFlip = useCallback(
     (e) => {
@@ -113,11 +140,25 @@ const App = () => {
 
   const toggleFullscreen = () => {
     if (!document.fullscreenElement) {
-      divRef.current.requestFullscreen();
+      // divRef?.current.requestFullscreen();
+      document.documentElement.requestFullscreen();
+      setIsFullscreen(true);
     } else {
       document.exitFullscreen();
+      setIsFullscreen(false);
     }
   };
+
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+
+    document.addEventListener("fullscreenchange", handleFullscreenChange);
+    return () => {
+      document.removeEventListener("fullscreenchange", handleFullscreenChange);
+    };
+  }, []);
 
   const toggleAudio = () => {
     if (isPlaying) {
@@ -237,7 +278,7 @@ const App = () => {
   // };
 
   // Function to handle media (audio/video/youtube/website/phone/email) click
-  
+
   const handleMediaClick = (mediaUrl, event) => {
     // Check if it's a phone number
     if (isPhoneNumber(mediaUrl)) {
@@ -316,7 +357,23 @@ const App = () => {
 
   const [gotPoints, setGotPoints] = useState([]);
 
-  const getPoints = async () => {
+  const getFlipbookImages = useCallback(async () => {
+    try {
+      const response = await fetch(
+        `${BASE_URL}/brochure/brochure/${flipbookName}`
+      );
+      const data = await response.json();
+      console.log(data?.data?.contactInfo, "data");
+
+      setFlipbookImages(data?.data?.images);
+      setContactInfo(data?.data?.contactInfo);
+      setIsPdfLandScape(data?.data?.isLandScape);
+    } catch (error) {
+      console.error("Error fetching flipbook data:", error);
+    }
+  }, [flipbookName]);
+
+  const getPoints = useCallback(async () => {
     try {
       const res = await fetch(`${BASE_URL}/link/media-links/${flipbookName}`);
       const data = await res.json();
@@ -324,14 +381,17 @@ const App = () => {
     } catch (err) {
       console.error("Fetch failed:", err);
     }
-  };
-  console.log(gotPoints, "got points");
+  }, [flipbookName]);
+
+  // console.log(gotPoints, "got points");
 
   useEffect(() => {
     if (flipbookName) {
       getPoints();
+      getFlipbookImages();
     }
   }, [flipbookName]);
+
   const getYouTubeVideoId = (url) => {
     if (!url) return null;
 
@@ -368,67 +428,142 @@ const App = () => {
     }
   };
 
+  const reRender = useResizeRerender();
+
   return (
     <div className="relative h-svh w-full flex flex-col overflow-hidden">
       <div className="relative w-full flex-1 max-w-6xl mx-auto">
-        <div
-          ref={divRef}
-          className="relative h-full bg-teal-600 flex flex-col"
-        >
-          {/* Book Container - takes remaining space */}
-          {/* p-2 sm:p-4 */}
+        <div ref={divRef} className="relative h-full  flex flex-col">
           <div className="flex-1 flex items-center justify-center  ">
-            <div
-              style={{
-                transform: `scale(${zoomLevel})`,
-                transformOrigin: "center",
-              }}
-              className="transition-transform duration-300 ease-out w-full h-full flex items-center justify-center"
-            >
+            <div className=" transition-transform duration-300 ease-out w-full h-full flex gap-0 items-center justify-center ">
+              {/* <div class="absolute pointer-events-none z-100 left-1/2 -translate-x-1/2 h-full top-1/2 -translate-y-1/2 w-[10%]  bg-[linear-gradient(89.43deg,rgba(0,0,0,0)_0.54%,rgba(0,0,0,0.05)_27.67%,rgba(30,30,30,0.5)_50.23%,rgba(0,0,0,0.05)_75.75%,rgba(0,0,0,0)_99.55%)]"></div> */}
+
               <HTMLFlipBook
-                // Mobile settings - full width
-                width={window.innerWidth < 640 ? window.innerWidth - 32 : 400}
-                height={
-                  window.innerWidth < 640 ? (window.innerWidth - 32) * 1.4 : 560
-                }
-                // Desktop settings
+                key={reRender}
                 size="stretch"
-                //min width and height
-                minWidth={window.innerWidth < 640 ? window.innerWidth : 300}
-                minHeight={
-                  window.innerWidth < 640 ? window.innerWidth * 1.4 : 420
-                }
-                //max width and height
-                maxWidth={
+                height={
                   window.innerWidth < 640
-                    ? window.innerWidth - 16
-                    : (window.innerHeight - 70) / 1.4
+                    ? (window.innerWidth - 32) * 1.4
+                    : isPdfLandScape
+                    ? window.innerHeight
+                    : 560
+                }
+                minHeight={
+                  window.innerWidth < 640
+                    ? window.innerWidth * 1.4
+                    : isPdfLandScape
+                    ? window.innerHeight
+                    : 420
                 }
                 maxHeight={
                   window.innerWidth < 640
                     ? window.innerHeight - 200
+                    : isPdfLandScape
+                    ? window.innerHeight
                     : window.innerHeight - 70
+                }
+                width={
+                  window.innerWidth < 640
+                    ? window.innerWidth - 32
+                    : isPdfLandScape
+                    ? window.innerWidth * 0.9
+                    : 400
+                }
+                minWidth={
+                  window.innerWidth < 640
+                    ? window.innerWidth
+                    : isPdfLandScape
+                    ? window.innerWidth * 0.8
+                    : isPdfLandScape
+                    ? window.innerWidth
+                    : 300
+                }
+                maxWidth={
+                  window.innerWidth < 640
+                    ? window.innerWidth - 16
+                    : isPdfLandScape
+                    ? window.innerWidth
+                    : (window.innerHeight - 70) / 1.4
                 }
                 mobileScrollSupport={true}
                 onFlip={onFlip}
                 flippingTime={500}
                 ref={bookRef}
+                usePortrait={true}
                 startPage={0}
                 autoSize={true}
                 useMouseEvents={false}
-                className="w-full h-auto max-w-full max-h-full "
+                drawShadow={true}
+                maxShadowOpacity={0.5}
+                // data-density="hard"
+                showCover={true}
+                style={{
+                  boxShadow: isPdfLandScape
+                    ? ""
+                    : `15px 0px 0px 0px #7A7A7A66,10px 0px 0px 0px #7A7A7A80, 5px 0px 0px 0px #7A7A7A99,2px 0px 0px 0px #7A7A7AB2,
+                     0px 2px 2px 0px #00000033,-2px 0px 2px 0px #00000033, 0px -2px 2px 0px #0000001A`,
+                  // with last one : "30px 0px 0px 0px #7A7A7A1A,25px 0px 0px 0px #7A7A7A33,20px 0px 0px 0px #7A7A7A4D,15px 0px 0px 0px #7A7A7A66,10px 0px 0px 0px #7A7A7A80, 5px 0px 0px 0px #7A7A7A99,2px 0px 0px 0px #7A7A7AB2,-4px 0px 4px 0px #0000004D",
+                  // "0px 2px 2px 0px #00000033,-2px 0px 2px 0px #00000033,0px -2px 2px 0px #0000001A",  outline shadow potrait
+                }}
+                renderOnlyPageLengthChange={true}
+                // style={{ boxShadow: "-20px 0 30px rgba(0, 0, 0, 0.3)" }}
+                className={`
+                  rounded-sm  flibook-container relative
+                  ${
+                    isPdfLandScape
+                      ? "!h-[95svh] min-h-[90svh] !max-h-svh "
+                      : // : "w-full h-auto max-w-full max-h-full"
+                        // "!h-[95svh] min-h-[90svh] !max-h-svh"
+                        "!max-h-full !h-auto sm:gradient-bg"
+                  }
+                  `}
               >
+                {/* <MultiShadowComponent /> */}
+
                 {flipbookImages?.map((imageSrc, index) => (
                   <div
                     key={index}
-                    className="relative bg-white overflow-hidden w-full h-full self-center flex justify-center"
+                    className={`relative bg-white overflow-hidden h-full w-full self-center flex justify-center 
+                      ${isPdfLandScape ? "w-auto" : "w-full"}
+                      `}
                   >
+                    {/* <div 
+                    className="h-full w-full relative"> */}
+                    {/* <MultiShadowComponent /> */}
+                    {/* <Demo/> */}
+                    {/* </div> */}
+
+                    {/* // w-full on this shows 2 removing it shows */}
+
                     <img
+                      // shadow for landscape pdf
+                      style={{
+                        boxShadow: isPdfLandScape
+                          ? "30px 0px 0px 0px #7A7A7A1A,25px 0px 0px 0px #7A7A7A33,20px 0px 0px 0px #7A7A7A4D,15px 0px 0px 0px #7A7A7A66,10px 0px 0px 0px #7A7A7A80, 5px 0px 0px 0px #7A7A7A99,2px 0px 0px 0px #7A7A7AB2,-4px 0px 4px 0px #0000004D"
+                          : ``,
+                      }}
                       src={imageSrc}
+                      // style={{ boxShadow: "-20px 0 30px rgba(0, 0, 0, 0.3)" }}
                       alt={"image " + index}
                       // width={600}
                       // height={600}
-                      className="object-contain h-full w-full sm:h-[90vh] sm:w-auto "
+                      // className={`
+                      //   ${
+                      //     isPdfLandScape
+                      //       ? "mx-auto !w-auto !h-full object-contain"
+                      //       : "object-contain h-full w-full sm:h-[95vh] sm:w-auto"
+                      //   }
+                      //   `}
+
+                      className={`object-contain h-full
+                      ${index % 2 === 0 ? "pageLeft" : "pageRight"}
+                      ${
+                        isPdfLandScape
+                          ? "w-auto mx-auto"
+                          : "w-full  sm:h-[90vh] sm:w-auto"
+                      }
+                      `}
+
                       // onClick={(e) => handleImageClick(e, index)}
                       // priority={true}
                     />
@@ -436,6 +571,7 @@ const App = () => {
                     {gotPoints
                       .filter((obj) => obj.pageNumber === index + 1)
                       .map((obj, idx) => {
+                        console.log(obj, idx);
                         // return (
                         //   <div className="" key={idx}>
                         //     <div
@@ -458,9 +594,13 @@ const App = () => {
 
                         //   </div>
                         // );
-                        const isWhatsapp = /^(\+91)?[6-9]\d{9}$/.test(obj?.link);
+                        const isWhatsapp = /^(\+91)?[6-9]\d{9}$/.test(
+                          obj?.link
+                        );
                         // basic Indian number
-                        const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(obj?.link);
+                        const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(
+                          obj?.link
+                        );
 
                         const isWebsite = isWebsiteLink(obj?.link);
                         const isYoutube =
@@ -498,17 +638,16 @@ const App = () => {
                           buttonColor = "bg-purple-500 hover:bg-purple-600";
                           icon = <Play size={14} />;
                         }
-                        
 
                         return (
-                          <div key={idx}>
+                          <div className="" key={idx}>
                             <button
                               style={{
                                 left: `${obj?.coordinates?.x}%`,
                                 top: `${obj?.coordinates.y}%`,
                               }}
                               onClick={(e) => handleMediaClick(obj?.link, e)}
-                              className={`absolute shadow-lg w-6 h-6 pulse ${buttonColor} rounded-full flex items-center justify-center text-white transform -translate-x-1/2 -translate-y-1/2`}
+                              className={`absolute shadow-lg w-6 h-6 pulse ${buttonColor} rounded-full opacity-100   flex items-center justify-center text-white transform -translate-x-1/2 -translate-y-1/2`}
                               title={`${
                                 isWebsite
                                   ? "Open Website"
@@ -519,11 +658,12 @@ const App = () => {
                                   : "Play Audio"
                               }: ${obj?.coordinates?.label}`}
                             >
-                              <span>{icon}</span>
+                              <span className="">{icon}</span>
                             </button>
                           </div>
                         );
                       })}
+                      
                   </div>
                 ))}
               </HTMLFlipBook>
@@ -531,7 +671,18 @@ const App = () => {
           </div>
 
           {/* Fixed Controls Bar */}
-          <div className="bg-gray-800 flex items-center justify-between sm:justify-center px-2 sm:px-4 py-2 gap-1 sm:gap-8 flex-shrink-0">
+          <div
+            onMouseOver={() => setVisible(true)}
+            onMouseOut={() => setVisible(false)}
+            style={{
+              opacity: visible ? 1 : 0,
+              // backdropFilter: "blur(10px)",
+              transition: "opacity 0.3s ease",
+              // borderRadius: "12px",
+              boxShadow: "0 8px 16px rgba(0,0,0,0.25)",
+            }}
+            className="bg-black/80 left-0 rounded-t-xl  right-0 bottom-0 sm:bottom-0 md:bottom-0  absolute flex items-center justify-between sm:justify-center px-2 sm:px-4 py-2 gap-1 sm:gap-8 flex-shrink-0"
+          >
             <button
               onClick={() => {
                 audioRef.current.pause();
@@ -571,6 +722,7 @@ const App = () => {
               onClick={() => {
                 audioRef.current.pause();
                 bookRef.current.pageFlip().flipNext();
+
                 setCurrentPage(
                   currentPage < flipbookImages.length - 2
                     ? currentPage + 2
@@ -588,11 +740,15 @@ const App = () => {
               className="text-white p-1 md:p-3 hover:bg-gray-700"
               aria-label="Full screen"
             >
-              <Fullscreen size={28} />
+              {isFullscreen ? (
+                <MdFullscreenExit size={28} />
+              ) : (
+                <MdFullscreen size={28} />
+              )}
             </button>
 
             <button
-              className="p-1 md:p-3"
+              className="p-1 md:p-3 hover:bg-gray-700"
               aria-label={isPlaying ? "Mute Audio" : "Play Audio"}
               onClick={toggleAudio}
             >
@@ -602,7 +758,6 @@ const App = () => {
                 <VolumeX color="white" size={28} />
               )}
             </button>
-
             {/* <AudioRecorder
               permission={permission}
               setPermission={setPermission}
@@ -673,26 +828,22 @@ const App = () => {
         </>
       )}
 
-      {/* {contactInfo && (
-        <div className="absolute z-50 bottom-6 right-6 bg-white shadow-2xl p-4 rounded-2xl flex flex-col gap-3 items-center">
-          <Mail
-            onClick={(e) => {
-              handleMediaClick(contactInfo?.email, e);
-            }}
-            className="text-red-600 hover:scale-110 transition-transform"
-            size={30}
-          />
-          <FaWhatsapp
-            onClick={(e) => {
-              handleMediaClick(contactInfo?.number, e);
-            }}
-            className="text-green-600 hover:scale-110 transition-transform"
-            size={30}
-          />
-        </div>
-      )} */}
+      {contactInfo && (
+        <ContactWidget
+          contactInfo={contactInfo}
+          handleMediaClick={handleMediaClick}
+        />
+      )}
 
-      {contactInfo && <ContactWidget contactInfo={contactInfo} handleMediaClick={handleMediaClick} />}
+      {isOrientationPortrait && isPdfLandScape && (
+        <div className="fixed top-0 left-0 px-4 w-full bg-yellow-500 text-black flex items-center justify-center py-2 shadow-md z-50">
+          <FiRotateCw className="mr-4 text-2xl animate-spin-slow" />
+          <span className="font-medium">
+            Please rotate your device to <strong>landscape</strong> for the best
+            experience.
+          </span>
+        </div>
+      )}
     </div>
   );
 };
