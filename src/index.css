@@ -1,35 +1,73 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@500;600&display=swap");
 @import "tailwindcss";
 
+@theme {
+  --font-Inter: "Inter", sans-serif;
+}
+
+body {
+  user-select: none;
+}
+
 .blue {
-  background: #3652D9;
+  background: #3652d9;
 }
 
 .pulse {
   animation: pulse-animation 2s infinite;
 }
 
-
-
-.pageLeft {
-  border-right: 0;
-  box-shadow: inset -7px 0 30px -7px rgba(0, 0, 0, .4);
-}
-
-.pageRight {
-  border-left: 0;
-  box-shadow: inset 7px 0 30px -7px rgba(0, 0, 0, .4);
-}
-
 .gradient-bg::before {
-    content: "";
-    position: absolute;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 10%;
-    height: 100%;
-    z-index: 50;
-    pointer-events: none;
-    background: linear-gradient(89.43deg, rgba(0, 0, 0, 0) 0.54%, rgba(0, 0, 0, 0.05) 27.67%, rgba(30, 30, 30, 0.5) 50.23%, rgba(0, 0, 0, 0.05) 75.75%, rgba(0, 0, 0, 0) 99.55%);
+  content: "";
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 20%;
+  height: 100%;
+  z-index: 50;
+  /* pointer-events: none; */
+  background: linear-gradient(
+    89.43deg,
+    rgba(0, 0, 0, 0) 0.54%,
+    rgba(0, 0, 0, 0.05) 27.67%,
+    rgba(30, 30, 30, 0.5) 50.23%,
+    rgba(0, 0, 0, 0.05) 75.75%,
+    rgba(0, 0, 0, 0) 99.55%
+  );
+}
+
+/* //keep it on image  */
+.single-page::before {
+  content: "";
+  position: absolute;
+  left: 7%;
+  transform: translateX(-50%);
+  width: 20%;
+  height: 100%;
+  z-index: 50;
+  pointer-events: none;
+  /* background: linear-gradient(89.43deg, rgba(0, 0, 0, 0) 0.54%, rgba(0, 0, 0, 0.05) 27.67%, rgba(30, 30, 30, 0.5) 50.23%, rgba(0, 0, 0, 0.05) 75.75%, rgba(0, 0, 0, 0) 99.55%); */
+}
+
+/* .single-page::before {
+  @apply absolute left-[7%] translate-x-[-50%] w-[20%] h-full z-[50] pointer-events-none content-[''];
+  background: linear-gradient(89.43deg, rgba(0, 0, 0, 0) 0.54%, rgba(0, 0, 0, 0.05) 27.67%, rgba(30, 30, 30, 0.5) 50.23%, rgba(0, 0, 0, 0.05) 75.75%, rgba(0, 0, 0, 0) 99.55%);
+} */
+
+@keyframes spin-90 {
+  0% {
+    transform: rotate(0deg);
+  }
+  50% {
+    transform: rotate(90deg);
+  }
+  100% {
+    transform: rotate(0deg);
+  }
+}
+
+.animate-spin-90 {
+  animation: spin-90 2s ease-in-out infinite;
 }
 
 @keyframes pulse-animation {
