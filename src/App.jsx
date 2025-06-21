@@ -36,7 +36,7 @@ import { useResizeRerender } from "./hooks/useResizeRerender";
 import MenuPopup from "./components/MenuPopup";
 import HoverCarousel from "./components/HoverCarousel";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faL, faPhotoFilm } from "@fortawesome/free-solid-svg-icons";
+import { faPhotoFilm } from "@fortawesome/free-solid-svg-icons";
 import { faYoutube } from "@fortawesome/free-brands-svg-icons";
 
 const App = () => {
@@ -105,7 +105,7 @@ const App = () => {
   useEffect(() => {
     const handler = () => {
       setIsOrientationPortrait(
-        screen.orientation.type.includes("landscape") ? false : true
+        screen.orientation.type?.includes("landscape") ? false : true
       );
     };
 
@@ -212,7 +212,7 @@ const App = () => {
     ];
 
     // Check if it's not a media file or YouTube
-    const isYoutube = url.includes("youtube.com") || url.includes("youtu.be");
+    const isYoutube = url?.includes("youtube.com") || url?.includes("youtu.be");
     const videoExtensions = [
       ".mp4",
       ".webm",
@@ -233,10 +233,10 @@ const App = () => {
       ".wma",
     ];
     const isVideo = videoExtensions.some((ext) =>
-      url.toLowerCase().includes(ext)
+      url.toLowerCase()?.includes(ext)
     );
     const isAudio = audioExtensions.some((ext) =>
-      url.toLowerCase().includes(ext)
+      url.toLowerCase()?.includes(ext)
     );
 
     // It's a website link if it starts with http/https but is not YouTube, video, or audio
@@ -313,7 +313,7 @@ const App = () => {
 
     // Check if it's a YouTube URL
     const isYoutube =
-      mediaUrl.includes("youtube.com") || mediaUrl.includes("youtu.be");
+      mediaUrl?.includes("youtube.com") || mediaUrl?.includes("youtu.be");
 
     // Check if it's a regular video file
     const videoExtensions = [
@@ -326,7 +326,7 @@ const App = () => {
       ".mkv",
     ];
     const isVideo = videoExtensions.some((ext) =>
-      mediaUrl.toLowerCase().includes(ext)
+      mediaUrl?.toLowerCase()?.includes(ext)
     );
 
     if (isYoutube || isVideo) {
