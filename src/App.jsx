@@ -566,26 +566,33 @@ const App = () => {
                           ? " lg:right-1/2 lg:-translate-x-1/2"
                           : ""
                       }
-                      ${isPdfLandScape ? "w-auto !flex" : "w-full"}
+                      ${isPdfLandScape ? "w-auto " : "w-full"}
                       `}
                     >
                       {displayOverlay && (
                         <div className="absolute  z-40 pointer-events-none w-screen h-screen top-0 left-0 bg-black/70 " />
                       )}
 
-                      {/* <ChevronFirst
-                        onClick={() => bookRef.current.pageFlip().turnToPage(0)}
-                        className="self-start"
-                        size={20}
-                      />
+                      {/* {isPdfLandScape && (
+                        <>
+                          <ChevronFirst
+                            onClick={() =>
+                              bookRef.current.pageFlip().turnToPage(0)
+                            }
+                            className="self-start hidden lg:inline text-gray-400"
+                            size={20}
+                          />
 
-                      <ChevronLeft
-                        size={28}
-                        className="hidden lg:inline mr-10 text-gray-400"
-                        // className="absolute left-0 top-1/2 -translate-y-1/2"
-                        onClick={() => bookRef.current.pageFlip().flipPrev()}
-                      /> */}
-
+                          <ChevronLeft
+                            size={28}
+                            className="hidden lg:inline mr-5 text-gray-400"
+                            // className="absolute left-0 top-1/2 -translate-y-1/2"
+                            onClick={() =>
+                              bookRef.current.pageFlip().flipPrev()
+                            }
+                          />
+                        </>
+                      )} */}
                       <img
                         // shadow for landscape pdf
                         style={{
@@ -627,10 +634,10 @@ const App = () => {
 
                         // priority={true}
                       />
-
-                      {/* <ChevronRight
+{/* 
+                      <ChevronRight
                         size={28}
-                        className="hidden lg:inline ml-10 text-gray-400"
+                        className="hidden lg:inline ml-5 text-gray-400"
                         // className="absolute right-0 top-1/2 -translate-y-1/2"
                         onClick={() => bookRef.current.pageFlip().flipNext()}
                       />
@@ -642,7 +649,7 @@ const App = () => {
                             .getPageCount();
                           bookRef.current.pageFlip().turnToPage(pageCount - 1);
                         }}
-                        className="self-start"
+                        className="self-start hidden lg:inline text-gray-400"
                         size={20}
                       /> */}
 
