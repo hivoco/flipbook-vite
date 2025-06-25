@@ -51,7 +51,7 @@ const ContactWidget = ({ setIsExpanded, contactInfo }) => {
           <a
             // onClick={(e) => handleMediaClick(contactInfo?.number, e)}
             // href={`https://wa.me/${contactInfo?.number}`}
-            href={`https://wa.me/9873246272?text=Hey%20there!%20I%20am%20interested%20in%20Flipbook`}
+            href={`https://wa.me/${contactInfo?.number}?text=Hey%20there!%20I%20am%20interested%20in%20Flipbook`}
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center gap-3 p-3 rounded-xl border border-gray-200 hover:border-green-300 hover:bg-green-50 transition-colors duration-200 group"

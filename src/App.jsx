@@ -4,6 +4,8 @@ import AudioRecorder from "./components/AudioRecorder";
 import { FaWhatsapp } from "react-icons/fa";
 
 import {
+  ChevronFirst,
+  ChevronLast,
   ChevronLeft,
   ChevronRight,
   EllipsisVertical,
@@ -26,7 +28,7 @@ import {
   Youtube,
 } from "lucide-react";
 import { MdFullscreen, MdFullscreenExit } from "react-icons/md";
-import { FiRotateCw } from "react-icons/fi";
+import { FiChevronLeft, FiRotateCw } from "react-icons/fi";
 
 import { BASE_URL } from "../constant";
 import YouTube from "react-youtube";
@@ -36,14 +38,16 @@ import { useResizeRerender } from "./hooks/useResizeRerender";
 import MenuPopup from "./components/MenuPopup";
 import HoverCarousel from "./components/HoverCarousel";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faPhotoFilm } from "@fortawesome/free-solid-svg-icons";
+import { faL, faPhotoFilm } from "@fortawesome/free-solid-svg-icons";
 import { faYoutube } from "@fortawesome/free-brands-svg-icons";
+import PlaySound from "./components/PlaySound";
 
 const App = () => {
   const bookRef = useRef();
   const audioRef = useRef();
   const divRef = useRef();
   const videoRef = useRef();
+  const FlipSoundRef = useRef(null);
 
   const [audioSrc, setAudioSrc] = useState("");
   const [displayOverlay, setDisplayOverlay] = useState(false);
@@ -79,6 +83,7 @@ const App = () => {
   const [isYouTubeVideo, setIsYouTubeVideo] = useState(false);
   const [youtubePlayer, setYoutubePlayer] = useState(null);
   const [showVideoPopup, setShowVideoPopup] = useState(false);
+  const lastMouseY = useRef(0);
 
   // const [hoverPosition, setHoverPosition] = useState({ x: 0, y: 0 });
 
@@ -100,6 +105,28 @@ const App = () => {
   useEffect(() => {
     const name = window.location.pathname.split("/").pop();
     setFlipbookName(name);
+    // let timer;
+
+    const handleMouseMove = (e) => {
+      const currentY = e.clientY;
+      if (currentY > lastMouseY.current) {
+        // clearTimeout(timer);
+        setVisible(true);
+        // timer = setTimeout(() => {
+        //   setVisible(false);
+        // }, 5000);
+      } else {
+        setVisible(false);
+      }
+
+      lastMouseY.current = currentY;
+    };
+
+    document.addEventListener("mousemove", handleMouseMove);
+    return () => {
+      // clearTimeout(timer);
+      document.removeEventListener("mousemove", handleMouseMove);
+    };
   }, []);
 
   useEffect(() => {
@@ -118,27 +145,10 @@ const App = () => {
     };
   }, []);
 
-  // useEffect(() => {
-  //   // setTotalPages(pages.length);
-  //   if (flipbookName) {
-  //     getFlipbookImages();
-  //   }
-  // }, [flipbookName]);
-
   const onFlip = useCallback((e) => {
     setCurrentPage(e.data);
     console.log("Current page: " + e.data);
   }, []);
-
-  // console.log(pageNumber, "page num");
-
-  // const handleZoomIn = () => {
-  //   setZoomLevel(Math.min(zoomLevel + 0.1, 1.5));
-  // };
-
-  // const handleZoomOut = () => {
-  //   setZoomLevel(Math.max(zoomLevel - 0.1, 0.8));
-  // };
 
   const toggleFullscreen = () => {
     setCurrentPage(0); // syncs the state with flipbook
@@ -178,33 +188,6 @@ const App = () => {
     }
     setIsPlaying(!isPlaying);
   };
-
-  // const toggleTooltip = (pageIndex, pointIndex) => {
-  //   const tooltipId = `${pageIndex}-${pointIndex}`;
-  //   if (visibleTooltip === tooltipId) {
-  //     setVisibleTooltip(null);
-  //   } else {
-  //     setVisibleTooltip(tooltipId);
-  //   }
-  // };
-
-  // const handleGotPointClick = (e, gotPoint) => {
-  //   e.stopPropagation();
-  //   setActiveGotPoint(activeGotPoint === gotPoint._id ? null : gotPoint._id);
-  //   // setSelectedPoint(null); //
-  // };
-
-  // const toggleVideoPlayBack = () => {
-  //   if (!videoRef.current) return;
-
-  //   if (videoIsPlaying) {
-  //     videoRef.current.pause();
-  //   } else {
-  //     videoRef.current.play();
-  //   }
-
-  //   setVideoIsPlaying(!videoIsPlaying);
-  // };
 
   const isWebsiteLink = (url) => {
     const websitePatterns = [
@@ -442,6 +425,11 @@ const App = () => {
 
   const reRender = useResizeRerender();
 
+  useEffect(() => {
+    if (!FlipSoundRef?.current) return;
+    FlipSoundRef.current?.play();
+  }, [currentPage]);
+
   function displayPageNumInBar(pageNum) {
     const total = flipbookImages.length;
     if (isPdfLandScape || window.innerWidth < 640)
@@ -463,87 +451,84 @@ const App = () => {
       <div className="relative w-full flex-1 max-w-6xl mx-auto">
         <div ref={divRef} className="relative h-full  flex flex-col">
           <div className="flex-1 flex items-center justify-center">
-            <div className=" transition-transform duration-300 ease-out w-full h-full flex gap-0 items-center justify-center ">
-              {/* {flipbookImages.length > 0 && gotPoints.length >= 0 ? ( */}
-              <HTMLFlipBook
-                key={
-                  reRender
-                  // + `${flipbookImages.length}-${gotPoints.length}`
-                }
-                size="stretch"
-                height={
-                  window.innerWidth < 640
-                    ? (window.innerWidth - 32) * 1.4
-                    : isPdfLandScape
-                    ? window.innerHeight
-                    : 560
-                }
-                minHeight={
-                  window.innerWidth < 640
-                    ? window.innerWidth * 1.4
-                    : isPdfLandScape
-                    ? window.innerHeight
-                    : 420
-                }
-                maxHeight={
-                  window.innerWidth < 640
-                    ? window.innerHeight - 200
-                    : isPdfLandScape
-                    ? window.innerHeight
-                    : window.innerHeight - 70
-                }
-                width={
-                  window.innerWidth < 640
-                    ? window.innerWidth - 32
-                    : isPdfLandScape
-                    ? window.innerWidth * 0.9
-                    : 400
-                }
-                minWidth={
-                  window.innerWidth < 640
-                    ? window.innerWidth
-                    : isPdfLandScape
-                    ? window.innerWidth * 0.8
-                    : isPdfLandScape
-                    ? window.innerWidth
-                    : 300
-                }
-                maxWidth={
-                  window.innerWidth < 640
-                    ? window.innerWidth - 16
-                    : isPdfLandScape
-                    ? window.innerWidth
-                    : (window.innerHeight - 70) / 1.4
-                }
-                mobileScrollSupport={true}
-                onFlip={onFlip}
-                flippingTime={500}
-                ref={bookRef}
-                usePortrait={true}
-                startPage={0}
-                autoSize={true}
-                swipeDistance={50}
-                useMouseEvents={!(window.innerWidth > 1000)}
-                // useMouseEvents={true}
-                drawShadow={true}
-                maxShadowOpacity={0.5}
-                // data-density={isPdfLandScape ? "hard" : "soft"}
-                showCover={window.innerWidth > 1000 && !isPdfLandScape}
-                // show cover not looking good in single image /landscape view
-                style={{
-                  // stacked page animation as well as shadow
-                  boxShadow: isPdfLandScape
-                    ? ""
-                    : currentPage === 0
-                    ? ""
-                    : `15px 0px 0px 0px #7A7A7A66,10px 0px 0px 0px #7A7A7A80, 5px 0px 0px 0px #7A7A7A99,2px 0px 0px 0px #7A7A7AB2,
+            <div className="relative transition-transform duration-300 ease-out w-full h-full flex gap-0 items-center justify-center ">
+              {flipbookImages.length > 0 && gotPoints.length >= 0 ? (
+                <HTMLFlipBook
+                  key={reRender}
+                  size="stretch"
+                  height={
+                    window.innerWidth < 640
+                      ? (window.innerWidth - 32) * 1.4
+                      : isPdfLandScape
+                      ? window.innerHeight
+                      : 560
+                  }
+                  minHeight={
+                    window.innerWidth < 640
+                      ? window.innerWidth * 1.4
+                      : isPdfLandScape
+                      ? window.innerHeight
+                      : 420
+                  }
+                  maxHeight={
+                    window.innerWidth < 640
+                      ? window.innerHeight - 200
+                      : isPdfLandScape
+                      ? window.innerHeight
+                      : window.innerHeight - 70
+                  }
+                  width={
+                    window.innerWidth < 640
+                      ? window.innerWidth - 32
+                      : isPdfLandScape
+                      ? window.innerWidth * 0.9
+                      : 400
+                  }
+                  minWidth={
+                    window.innerWidth < 640
+                      ? window.innerWidth
+                      : isPdfLandScape
+                      ? window.innerWidth * 0.8
+                      : isPdfLandScape
+                      ? window.innerWidth
+                      : 300
+                  }
+                  maxWidth={
+                    window.innerWidth < 640
+                      ? window.innerWidth - 16
+                      : isPdfLandScape
+                      ? window.innerWidth
+                      : (window.innerHeight - 70) / 1.4
+                  }
+                  mobileScrollSupport={true}
+                  onFlip={onFlip}
+                  flippingTime={500}
+                  ref={bookRef}
+                  usePortrait={true}
+                  startPage={0}
+                  autoSize={true}
+                  swipeDistance={50}
+                  useMouseEvents={!(window.innerWidth > 1000)}
+                  // useMouseEvents={true}
+                  drawShadow={true}
+                  maxShadowOpacity={0.5}
+                  // data-density={isPdfLandScape ? "hard" : "soft"}
+                  showCover={window.innerWidth > 1000 && !isPdfLandScape}
+                  // show cover not looking good in single image /landscape view
+                  style={{
+                    // stacked page animation as well as shadow
+                    boxShadow: isPdfLandScape
+                      ? ""
+                      : currentPage === 0
+                      ? ""
+                      : `15px 0px 0px 0px #7A7A7A66,10px 0px 0px 0px #7A7A7A80, 5px 0px 0px 0px #7A7A7A99,2px 0px 0px 0px #7A7A7AB2,
                      0px 2px 2px 0px #00000033,-2px 0px 2px 0px #00000033, 0px -2px 2px 0px #0000001A`,
-                  // with last one : "30px 0px 0px 0px #7A7A7A1A,25px 0px 0px 0px #7A7A7A33,20px 0px 0px 0px #7A7A7A4D,15px 0px 0px 0px #7A7A7A66,10px 0px 0px 0px #7A7A7A80, 5px 0px 0px 0px #7A7A7A99,2px 0px 0px 0px #7A7A7AB2,-4px 0px 4px 0px #0000004D",
-                  // "0px 2px 2px 0px #00000033,-2px 0px 2px 0px #00000033,0px -2px 2px 0px #0000001A",  outline shadow potrait
-                }}
-                renderOnlyPageLengthChange={false}
-                // style={{ boxShadow: "-20px 0 30px rgba(0, 0, 0, 0.3)" }}
-                className={`
+                    // with last one : "30px 0px 0px 0px #7A7A7A1A,25px 0px 0px 0px #7A7A7A33,20px 0px 0px 0px #7A7A7A4D,15px 0px 0px 0px #7A7A7A66,10px 0px 0px 0px #7A7A7A80, 5px 0px 0px 0px #7A7A7A99,2px 0px 0px 0px #7A7A7AB2,-4px 0px 4px 0px #0000004D",
+                    // "0px 2px 2px 0px #00000033,-2px 0px 2px 0px #00000033,0px -2px 2px 0px #0000001A",  outline shadow potrait
+                  }}
+                  renderOnlyPageLengthChange={false}
+                  // style={{ boxShadow: "-20px 0 30px rgba(0, 0, 0, 0.3)" }}
+                  className={`
                   rounded-sm  flibook-container relative select-none  
 
                   ${
@@ -570,234 +555,267 @@ const App = () => {
                   }
                   `}
 
-                //tailwind cant process this : sm:class Defined In index.css
-              >
-                {flipbookImages?.map((imageSrc, index) => (
-                  <div
-                    key={index}
-                    // data-density="soft"
-                    className={`relative bg-white overflow-hidden h-full w-full self-center flex justify-center
+                  //tailwind cant process this : sm:class Defined In index.css
+                >
+                  {flipbookImages?.map((imageSrc, index) => (
+                    <div
+                      key={index}
+                      className={`relative bg-white overflow-hidden h-full w-full self-center  justify-center  items-center 
                       ${
                         index === 0 && !isPdfLandScape
                           ? " lg:right-1/2 lg:-translate-x-1/2"
                           : ""
-                      } 
-                      ${isPdfLandScape ? "w-auto" : "w-full"}
-                      `}
-                  >
-                    {displayOverlay && (
-                      <div className="absolute  z-40 pointer-events-none w-screen h-screen top-0 left-0 bg-black/70 " />
-                    )}
-
-                    {/* <div 
-                    className="h-full w-full relative"> */}
-                    {/* </div> */}
-                    {/* // w-full on this shows 2 removing it shows */}
-                    <img
-                      // shadow for landscape pdf
-                      style={{
-                        boxShadow: isPdfLandScape
-                          ? `15px 0px 0px 0px #7A7A7A66,10px 0px 0px 0px #7A7A7A80, 5px 0px 0px 0px #7A7A7A99,2px 0px 0px 0px #7A7A7AB2,
-                     0px 2px 2px 0px #00000033,-2px 0px 2px 0px #00000033, 0px -2px 2px 0px #0000001A`
-                          : // old "30px 0px 0px 0px #7A7A7A1A,25px 0px 0px 0px #7A7A7A33,20px 0px 0px 0px #7A7A7A4D,15px 0px 0px 0px #7A7A7A66,10px 0px 0px 0px #7A7A7A80, 5px 0px 0px 0px #7A7A7A99,2px 0px 0px 0px #7A7A7AB2,-4px 0px 4px 0px #0000004D"
-                            ``,
-                      }}
-                      src={imageSrc}
-                      // style={{ boxShadow: "-20px 0 30px rgba(0, 0, 0, 0.3)" }}
-                      alt={"image " + index}
-                      // width={600}
-                      // height={600}
-                      // className={`
-                      //   ${
-                      //     isPdfLandScape
-                      //       ? "mx-auto !w-auto !h-full object-contain"
-                      //       : "object-contain h-full w-full sm:h-[95vh] sm:w-auto"
-                      //   }
-                      //   `}
-
-                      // ${index % 2 === 0 ? "pageLeft" : "pageRight"}
-                      className={`object-contain h-full relative 
-                      ${
-                        isPdfLandScape
-                          ? "w-auto mx-auto"
-                          : "w-full  lg:h-[90vh] lg:w-auto"
                       }
+                      ${isPdfLandScape ? "w-auto !flex" : "w-full"}
                       `}
+                    >
+                      {displayOverlay && (
+                        <div className="absolute  z-40 pointer-events-none w-screen h-screen top-0 left-0 bg-black/70 " />
+                      )}
 
-                      // onClick={(e) => handleImageClick(e, index)}
-                      // priority={true}
-                    />
+                      {/* <ChevronFirst
+                        onClick={() => bookRef.current.pageFlip().turnToPage(0)}
+                        className="self-start"
+                        size={20}
+                      />
 
-                    {/* // page number in backend from 1  */}
-                    {gotPoints
-                      .filter((obj) => obj.pageNumber === index + 1)
-                      .map((obj, idx) => {
-                        // Initialize variables outside the if block
-                        let isWhatsapp = false;
-                        let isEmail = false;
-                        let isWebsite = false;
-                        let isYoutube = false;
-                        let isVideo = false;
+                      <ChevronLeft
+                        size={28}
+                        className="hidden lg:inline mr-10 text-gray-400"
+                        // className="absolute left-0 top-1/2 -translate-y-1/2"
+                        onClick={() => bookRef.current.pageFlip().flipPrev()}
+                      /> */}
 
-                        // Determine button color and icon
-                        let buttonColor = "bg-[#006AE6] hover:bg-[#006AE7]"; // Default for carousel
+                      <img
+                        // shadow for landscape pdf
+                        style={{
+                          boxShadow: isPdfLandScape
+                            ? //stack right
+                              `
+                            15px 0px 0px 0px #7A7A7A66,10px 0px 0px 0px #7A7A7A80, 5px 0px 0px 0px #7A7A7A99,2px 0px 0px 0px #7A7A7AB2,
+                            0px 2px 2px 0px #00000033,-2px 0px 2px 0px #00000033, 0px -2px 2px 0px #0000001A,
 
-                        let icon = (
-                          <FontAwesomeIcon
-                            size={14}
-                            icon={faPhotoFilm}
-                            beatFade
-                            style={{ color: "#ffffff" }}
-                          />
-                        );
+                            0 25px 40px rgba(0, 0, 0, 0.4),
+                            0 35px 60px rgba(0, 0, 0, 0.2),
+                            0 8px 15px rgba(0, 0, 0, 0.3),
+                            0 0 0 1px rgba(255, 255, 255, 0.1)`
+                            : //shadow around the image
+                              // old "30px 0px 0px 0px #7A7A7A1A,25px 0px 0px 0px #7A7A7A33,20px 0px 0px 0px #7A7A7A4D,15px 0px 0px 0px #7A7A7A66,10px 0px 0px 0px #7A7A7A80, 5px 0px 0px 0px #7A7A7A99,2px 0px 0px 0px #7A7A7AB2,-4px 0px 4px 0px #0000004D"
+                              ``,
+                        }}
+                        src={imageSrc}
+                        // style={{ boxShadow: "-20px 0 30px rgba(0, 0, 0, 0.3)" }}
+                        alt={"image " + index}
+                        // width={600}
+                        // height={600}
+                        // className={`
+                        //   ${
+                        //     isPdfLandScape
+                        //       ? "mx-auto !w-auto !h-full object-contain"
+                        //       : "object-contain h-full w-full sm:h-[95vh] sm:w-auto"
+                        //   }
+                        //   `}
 
-                        // <FontAwesomeIcon  className="text-white"  icon="fa-solid fa-photo-film" />
-                        // <Images size={14} />; // Default carousel icon (Images from lucide-react)
-                        if (obj?.link) {
-                          isWhatsapp = /^(\+91)?[6-9]\d{9}$/.test(obj?.link);
-
-                          // Basic Indian number validation
-                          isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(
-                            obj?.link
-                          );
-
-                          isWebsite = isWebsiteLink(obj?.link);
-                          isYoutube =
-                            obj?.link?.includes("youtube.com") ||
-                            obj?.link?.includes("youtu.be");
-                          const videoExtensions = [
-                            ".mp4",
-                            ".webm",
-                            ".avi",
-                            ".mov",
-                            ".wmv",
-                            ".flv",
-                            ".mkv",
-                          ];
-                          isVideo = videoExtensions.some((ext) =>
-                            obj?.link?.toLowerCase()?.includes(ext)
-                          );
-
-                          // Override defaults for links
-                          buttonColor = "bg-blue-300 hover:bg-blue-600"; // Default for audio
-                          icon = <Volume1 size={14} />;
-
-                          if (isWhatsapp) {
-                            buttonColor = "bg-green-600 hover:bg-green-700";
-                            icon = <FaWhatsapp size={14} />;
-                          } else if (isEmail) {
-                            buttonColor = "bg-red-700 hover:bg-red-800";
-                            icon = <Mail size={14} />;
-                          } else if (isWebsite) {
-                            buttonColor = "bg-green-500 hover:bg-green-600";
-                            icon = <ExternalLink className="" size={14} />;
-                          } else if (isYoutube) {
-                            buttonColor = "bg-red-600 ";
-                            icon = (
-                              <FontAwesomeIcon
-                                size={14}
-                                icon={faYoutube}
-                                beatFade
-                              />
-                            );
-                            // <Youtube size={14} />
-                          } else if (isVideo) {
-                            buttonColor = "bg-purple-500 hover:bg-purple-600";
-                            icon = <Play size={14} />;
-                          }
+                        // ${index % 2 === 0 ? "pageLeft" : "pageRight"}
+                        className={`object-contain h-full relative 
+                        ${
+                          isPdfLandScape
+                            ? "w-auto mxauto justify-self-center"
+                            : "w-full  lg:h-[90vh] lg:w-auto"
                         }
+                        `}
 
-                        return (
-                          <div
-                            onClick={() => {
-                              console.log("div clicked");
-                            }}
-                            key={`${idx}-${showCarousel === idx}`}
-                            className="rendering points "
-                          >
-                            <button
-                              style={{
-                                left: `${obj?.coordinates?.x}%`,
-                                top: `${obj?.coordinates?.y}%`,
-                              }}
-                              onMouseOver={() => {
-                                setShowCarousel(obj._id);
-                                if (
-                                  obj?.isImage &&
-                                  showCarousel === obj._id &&
-                                  obj?.pageNumber === index + 1
-                                ) {
-                                  setDisplayOverlay(true);
-                                }
-                              }}
-                              onMouseLeave={() => {
-                                setShowCarousel(null);
-                                if (isYoutube) return;
-                                setDisplayOverlay(false);
-                              }}
-                              // turnToPage={}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                e.preventDefault();
-                                setShowCarousel(obj._id);
+                        // priority={true}
+                      />
 
-                                if (
-                                  (obj?.isImage &&
-                                    showCarousel === obj._id &&
-                                    obj?.pageNumber === index + 1) ||
-                                  isYoutube
-                                ) {
-                                  setDisplayOverlay(true);
-                                }
-                                // events wont go to the parent page wont flip when we click this button
-                                if (obj?.link) {
-                                  handleMediaClick(obj?.link, e);
-                                }
+                      {/* <ChevronRight
+                        size={28}
+                        className="hidden lg:inline ml-10 text-gray-400"
+                        // className="absolute right-0 top-1/2 -translate-y-1/2"
+                        onClick={() => bookRef.current.pageFlip().flipNext()}
+                      />
+
+                      <ChevronLast
+                        onClick={() => {
+                          const pageCount = bookRef.current
+                            .pageFlip()
+                            .getPageCount();
+                          bookRef.current.pageFlip().turnToPage(pageCount - 1);
+                        }}
+                        className="self-start"
+                        size={20}
+                      /> */}
+
+                      {/* // page number in backend from 1  */}
+                      {gotPoints
+                        .filter((obj) => obj.pageNumber === index + 1)
+                        .map((obj, idx) => {
+                          // Initialize variables outside the if block
+                          let isWhatsapp = false;
+                          let isEmail = false;
+                          let isWebsite = false;
+                          let isYoutube = false;
+                          let isVideo = false;
+
+                          // Determine button color and icon
+                          let buttonColor = "bg-[#006AE6] hover:bg-[#006AE7]"; // Default for carousel
+
+                          let icon = (
+                            <FontAwesomeIcon
+                              size={14}
+                              icon={faPhotoFilm}
+                              beatFade
+                              style={{ color: "#ffffff" }}
+                            />
+                          );
+
+                          // <FontAwesomeIcon  className="text-white"  icon="fa-solid fa-photo-film" />
+                          // <Images size={14} />; // Default carousel icon (Images from lucide-react)
+                          if (obj?.link) {
+                            isWhatsapp = /^(\+91)?[6-9]\d{9}$/.test(obj?.link);
+
+                            // Basic Indian number validation
+                            isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(
+                              obj?.link
+                            );
+
+                            isWebsite = isWebsiteLink(obj?.link);
+                            isYoutube =
+                              obj?.link?.includes("youtube.com") ||
+                              obj?.link?.includes("youtu.be");
+                            const videoExtensions = [
+                              ".mp4",
+                              ".webm",
+                              ".avi",
+                              ".mov",
+                              ".wmv",
+                              ".flv",
+                              ".mkv",
+                            ];
+                            isVideo = videoExtensions.some((ext) =>
+                              obj?.link?.toLowerCase()?.includes(ext)
+                            );
+
+                            // Override defaults for links
+                            buttonColor = "bg-blue-300 hover:bg-blue-600"; // Default for audio
+                            icon = <Volume1 size={14} />;
+
+                            if (isWhatsapp) {
+                              buttonColor = "bg-green-600 hover:bg-green-700";
+                              icon = <FaWhatsapp size={14} />;
+                            } else if (isEmail) {
+                              buttonColor = "bg-red-700 hover:bg-red-800";
+                              icon = <Mail size={14} />;
+                            } else if (isWebsite) {
+                              buttonColor = "bg-green-500 hover:bg-green-600";
+                              icon = <ExternalLink className="" size={14} />;
+                            } else if (isYoutube) {
+                              buttonColor = "bg-red-600 ";
+                              icon = (
+                                <FontAwesomeIcon
+                                  size={14}
+                                  icon={faYoutube}
+                                  beatFade
+                                />
+                              );
+                              // <Youtube size={14} />
+                            } else if (isVideo) {
+                              buttonColor = "bg-purple-500 hover:bg-purple-600";
+                              icon = <Play size={14} />;
+                            }
+                          }
+
+                          return (
+                            <div
+                              onClick={() => {
+                                console.log("div clicked");
                               }}
-                              className={`absolute shadow-lg w-10 h-10 pulse ${buttonColor} rounded-full z-50 opacity-100 flex items-center justify-center text-white transform -translate-x-1/2 -translate-y-1/2`}
-                              // title={`${
-                              //   isWebsite
-                              //     ? "Open Website"
-                              //     : isYoutube
-                              //     ? "Play YouTube Video"
-                              //     : isVideo
-                              //     ? "Play Video"
-                              //     : "Play Audio"
-                              // }: ${obj?.coordinates?.label}`}
+                              key={`${idx}-${showCarousel === idx}`}
+                              className="rendering points "
                             >
-                              <span>{icon}</span>
-                            </button>
+                              <button
+                                style={{
+                                  left: `${obj?.coordinates?.x}%`,
+                                  top: `${obj?.coordinates?.y}%`,
+                                }}
+                                onMouseOver={() => {
+                                  setShowCarousel(obj._id);
+                                  if (
+                                    obj?.isImage &&
+                                    showCarousel === obj._id &&
+                                    obj?.pageNumber === index + 1
+                                  ) {
+                                    setDisplayOverlay(true);
+                                  }
+                                }}
+                                onMouseLeave={() => {
+                                  setShowCarousel(null);
+                                  if (isYoutube) return;
+                                  setDisplayOverlay(false);
+                                }}
+                                // turnToPage={}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  e.preventDefault();
+                                  setShowCarousel(obj._id);
 
-                            {obj?.isImage &&
-                              showCarousel === obj._id &&
-                              obj?.pageNumber === index + 1 && (
-                                <div
-                                  className={`absolute z-50  opacity-100  transform translate-x-[0px] translate-y-[40px] `}
-                                  style={{
-                                    left: `${obj?.coordinates?.x}%`,
-                                    top: `${obj?.coordinates?.y}%`,
-                                  }}
-                                >
-                                  <HoverCarousel
-                                    images={obj?.images}
-                                    isHovered={true}
-                                  />
-                                </div>
-                              )}
-                          </div>
-                        );
-                      })}
-                  </div>
-                ))}
-              </HTMLFlipBook>
-              {/* // ) : (
-              //   <div className="size-5 flex flex-col items-center justify-center">
-              //     <span>
-              //       <LoaderCircle className="animate-spin" size={48} />
-              //     </span>
-              //     <p className="">Loading....</p>
-              //   </div>
-              // )} */}
+                                  if (
+                                    (obj?.isImage &&
+                                      showCarousel === obj._id &&
+                                      obj?.pageNumber === index + 1) ||
+                                    isYoutube
+                                  ) {
+                                    setDisplayOverlay(true);
+                                  }
+                                  // events wont go to the parent page wont flip when we click this button
+                                  if (obj?.link) {
+                                    handleMediaClick(obj?.link, e);
+                                  }
+                                }}
+                                className={`absolute shadow-lg w-10 h-10 pulse ${buttonColor} rounded-full z-50 opacity-100 flex items-center justify-center text-white transform -translate-x-1/2 -translate-y-1/2`}
+                                // title={`${
+                                //   isWebsite
+                                //     ? "Open Website"
+                                //     : isYoutube
+                                //     ? "Play YouTube Video"
+                                //     : isVideo
+                                //     ? "Play Video"
+                                //     : "Play Audio"
+                                // }: ${obj?.coordinates?.label}`}
+                              >
+                                <span>{icon}</span>
+                              </button>
+
+                              {obj?.isImage &&
+                                showCarousel === obj._id &&
+                                obj?.pageNumber === index + 1 && (
+                                  <div
+                                    className={`absolute z-50  opacity-100  transform translate-x-[0px] translate-y-[40px] `}
+                                    style={{
+                                      left: `${obj?.coordinates?.x}%`,
+                                      top: `${obj?.coordinates?.y}%`,
+                                    }}
+                                  >
+                                    <HoverCarousel
+                                      images={obj?.images}
+                                      isHovered={true}
+                                    />
+                                  </div>
+                                )}
+                            </div>
+                          );
+                        })}
+                    </div>
+                  ))}
+                </HTMLFlipBook>
+              ) : (
+                <div className="size-5 flex flex-col items-center justify-center">
+                  <span>
+                    <LoaderCircle className="animate-spin" size={48} />
+                  </span>
+                  <p className="">Loading....</p>
+                </div>
+              )}
             </div>
           </div>
 
@@ -839,13 +857,6 @@ const App = () => {
                 onClick={() => {
                   audioRef.current.pause();
                   bookRef.current.pageFlip().flipPrev();
-                  console.log(bookRef.current);
-
-                  // setCurrentPage(
-                  //   currentPage > 0 ? currentPage - 1 : currentPage
-                  // );
-
-                  // setDisplayPageNumber()
                 }}
                 className="text-white p-1 md:p-1.5 size-9 flex justify-center items-center  rounded-full border-2 border-white shadow-[0px_2px_2px_0px_#00000040]"
                 aria-label="Previous page"
@@ -863,11 +874,6 @@ const App = () => {
                 onClick={() => {
                   audioRef.current.pause();
                   bookRef.current.pageFlip().flipNext();
-
-                  // works for single images
-                  // setCurrentPage((prev) =>
-                  //   prev < flipbookImages.length - 1 ? prev + 1 : prev
-                  // )
                 }}
                 className="text-white p-1 md:p-1.5 size-9 flex justify-center items-center rounded-full border-2 border-white shadow-[0px_2px_2px_0px_#00000040]"
                 aria-label="Next page"
@@ -905,23 +911,14 @@ const App = () => {
               )}
             </button>
 
-            {/* {contactInfo && (
-              <ContactWidget
-                contactInfo={contactInfo}
-                handleMediaClick={handleMediaClick}
-              />
-            )} */}
-
             <button
               onClick={() => setIsExpanded((prev) => !prev)}
               className="text-white p-1 md:p-2 rounded-full border-2 border-white shadow-[0px_2px_2px_0px_#00000040]"
-              // className="bg-black text-white px-4 py-2 rounded-full shadow-2xl cursor-pointer hover:shadow-3xl hover:scale-105 transition-all duration-300 flex items-center gap-3 group"
             >
               <MessageCircleMore
                 className="group-hover:rotate-12 transition-transform duration-300"
                 size={20}
               />
-              {/* <span className="font-medium text-sm whitespace-nowrap">Connect with Us</span> */}
             </button>
 
             {/* <AudioRecorder
@@ -1005,18 +1002,8 @@ const App = () => {
         />
       )}
 
-      {/* {displayOverlay && (
-        <div className="absolute pointer-events-none inset-0 bg-black/70  flex items-center justify-center z-0 animate-in fade-in duration-300" />
-      )} */}
-
       {isOrientationPortrait && isPdfLandScape && (
         <div className="fixed top-0 left-0 px-4 w-full bg-yellow-500 text-black flex items-center justify-center py-2 shadow-md z-50">
-          {/* <FiRotateCw className="mr-4 text-2xl"/> */}
-          {/* <img
-            className="mr-4 size-30 object-contain bg-transparent animate-spin-90"
-            src="/Sign.png"
-          />
- */}
           <svg
             xmlns="http://www.w3.org/2000/svg"
             width={48}
@@ -1060,12 +1047,15 @@ const App = () => {
               <path fill="#5b5c5f" d="m14.4 37.07l12.198-12.2H14.4z"></path>
             </g>
           </svg>
+
           <span className="font-medium">
             Please rotate your device to <strong>landscape</strong> for the best
             experience.
           </span>
         </div>
       )}
+
+      <audio ref={FlipSoundRef} src="/page-sound.mp3" />
     </div>
   );
 };
