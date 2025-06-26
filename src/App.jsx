@@ -54,6 +54,8 @@ const App = () => {
   const [isExpanded, setIsExpanded] = useState(false);
 
   const [isPdfLandScape, setIsPdfLandScape] = useState(false);
+  const [isPageFlipSoundOn, setIsPageFlipSoundOn] = useState(false);
+
   //static for now change manually
   const [visible, setVisible] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -68,7 +70,6 @@ const App = () => {
 
   // const [currentAudioIndex, setCurrentAudioIndex] = useState(0);
   const [currentPage, setCurrentPage] = useState(0);
-  const [pageNumber, setPageNumber] = useState(0);
   console.log(currentPage, "currentPage");
 
   // const [permission, setPermission] = useState(false);
@@ -107,26 +108,26 @@ const App = () => {
     setFlipbookName(name);
     // let timer;
 
-    const handleMouseMove = (e) => {
-      const currentY = e.clientY;
-      if (currentY > lastMouseY.current) {
-        // clearTimeout(timer);
-        setVisible(true);
-        // timer = setTimeout(() => {
-        //   setVisible(false);
-        // }, 5000);
-      } else {
-        setVisible(false);
-      }
+    // const handleMouseMove = (e) => {
+    //   const currentY = e.clientY;
+    //   if (currentY > lastMouseY.current) {
+    //     // clearTimeout(timer);
+    //     setVisible(true);
+    //     // timer = setTimeout(() => {
+    //     //   setVisible(false);
+    //     // }, 5000);
+    //   } else {
+    //     setVisible(false);
+    //   }
 
-      lastMouseY.current = currentY;
-    };
+    //   lastMouseY.current = currentY;
+    // };
 
-    document.addEventListener("mousemove", handleMouseMove);
-    return () => {
-      // clearTimeout(timer);
-      document.removeEventListener("mousemove", handleMouseMove);
-    };
+    // document.addEventListener("mousemove", handleMouseMove);
+    // return () => {
+    //   // clearTimeout(timer);
+    //   document.removeEventListener("mousemove", handleMouseMove);
+    // };
   }, []);
 
   useEffect(() => {
@@ -356,11 +357,12 @@ const App = () => {
       );
       const data = await response.json();
 
-      // console.log(data, "data");
+      console.log(data, "data");
 
       setFlipbookImages(data?.data?.images);
       setContactInfo(data?.data?.contactInfo);
       setIsPdfLandScape(data?.data?.isLandScape);
+      setIsPageFlipSoundOn(data?.data?.pageFlipSound);
     } catch (error) {
       console.error("Error fetching flipbook data:", error);
     }
@@ -426,9 +428,10 @@ const App = () => {
   const reRender = useResizeRerender();
 
   useEffect(() => {
-    if (!FlipSoundRef?.current) return;
-    FlipSoundRef.current?.play();
-  }, [currentPage]);
+    if (FlipSoundRef?.current && isPageFlipSoundOn) {
+      FlipSoundRef.current?.play();
+    }
+  }, [currentPage, isPageFlipSoundOn]);
 
   function displayPageNumInBar(pageNum) {
     const total = flipbookImages.length;
@@ -533,7 +536,7 @@ const App = () => {
 
                   ${
                     isPdfLandScape
-                      ? "!h-[95svh] min-h-[90svh] !max-h-svh"
+                      ? "!h-[95svh] min-h-[90svh] !max-h-[99svh]"
                       : // : "w-full h-auto max-w-full max-h-full"
                         // "!h-[95svh] min-h-[90svh] !max-h-svh"
                         `!max-h-full !h-auto 
@@ -566,7 +569,7 @@ const App = () => {
                           ? " lg:right-1/2 lg:-translate-x-1/2"
                           : ""
                       }
-                      ${isPdfLandScape ? "w-auto " : "w-full"}
+                      ${isPdfLandScape ? "w-auto  " : "w-full"}
                       `}
                     >
                       {displayOverlay && (
@@ -579,13 +582,13 @@ const App = () => {
                             onClick={() =>
                               bookRef.current.pageFlip().turnToPage(0)
                             }
-                            className="self-start hidden lg:inline text-gray-400"
+                            className="absolute bottom-0 left-5 -translate-y-1/2  hidden lg:inline text-gray-400 "
                             size={20}
                           />
 
                           <ChevronLeft
                             size={28}
-                            className="hidden lg:inline mr-5 text-gray-400"
+                            className="absolute top-1/2 left-5 -translate-y-1/2  hidden lg:inline text-gray-400 "
                             // className="absolute left-0 top-1/2 -translate-y-1/2"
                             onClick={() =>
                               bookRef.current.pageFlip().flipPrev()
@@ -593,6 +596,7 @@ const App = () => {
                           />
                         </>
                       )} */}
+
                       <img
                         // shadow for landscape pdf
                         style={{
@@ -611,7 +615,6 @@ const App = () => {
                               ``,
                         }}
                         src={imageSrc}
-                        // style={{ boxShadow: "-20px 0 30px rgba(0, 0, 0, 0.3)" }}
                         alt={"image " + index}
                         // width={600}
                         // height={600}
@@ -623,7 +626,6 @@ const App = () => {
                         //   }
                         //   `}
 
-                        // ${index % 2 === 0 ? "pageLeft" : "pageRight"}
                         className={`object-contain h-full relative 
                         ${
                           isPdfLandScape
@@ -631,27 +633,30 @@ const App = () => {
                             : "w-full  lg:h-[90vh] lg:w-auto"
                         }
                         `}
-
-                        // priority={true}
-                      />
-{/* 
-                      <ChevronRight
-                        size={28}
-                        className="hidden lg:inline ml-5 text-gray-400"
-                        // className="absolute right-0 top-1/2 -translate-y-1/2"
-                        onClick={() => bookRef.current.pageFlip().flipNext()}
                       />
 
-                      <ChevronLast
-                        onClick={() => {
-                          const pageCount = bookRef.current
-                            .pageFlip()
-                            .getPageCount();
-                          bookRef.current.pageFlip().turnToPage(pageCount - 1);
-                        }}
-                        className="self-start hidden lg:inline text-gray-400"
-                        size={20}
-                      /> */}
+                      {/* {isPdfLandScape && (
+                        <>
+                          <ChevronLast
+                            onClick={() =>
+                              bookRef.current
+                                .pageFlip()
+                                .turnToPage(flipbookImages.length - 1)
+                            }
+                            className="absolute bottom-0 right-5 -translate-y-1/2  hidden lg:inline text-gray-400 "
+                            size={20}
+                          />
+
+                          <ChevronRight
+                            size={28}
+                            className="absolute top-1/2 right-5 -translate-y-1/2  hidden lg:inline text-gray-400 "
+                            // className="absolute left-0 top-1/2 -translate-y-1/2"
+                            onClick={() =>
+                              bookRef.current.pageFlip().flipNext()
+                            }
+                          />
+                        </>
+                      )} */}
 
                       {/* // page number in backend from 1  */}
                       {gotPoints
@@ -863,7 +868,8 @@ const App = () => {
               <button
                 onClick={() => {
                   audioRef.current.pause();
-                  bookRef.current.pageFlip().flipPrev();
+                  bookRef.current.pageFlip().flipPrev("top");
+                  // bookRef.current.pageFlip().turnToPrevPage();
                 }}
                 className="text-white p-1 md:p-1.5 size-9 flex justify-center items-center  rounded-full border-2 border-white shadow-[0px_2px_2px_0px_#00000040]"
                 aria-label="Previous page"
