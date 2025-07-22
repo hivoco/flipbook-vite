@@ -9,11 +9,6 @@ body {
   user-select: none;
 }
 
-.image::after {
-  content: ">";
-  font-size: 20px;
-  margin-left: 4px;
-}
 
 .blue {
   background: #3652d9;
@@ -54,11 +49,6 @@ body {
   pointer-events: none;
   /* background: linear-gradient(89.43deg, rgba(0, 0, 0, 0) 0.54%, rgba(0, 0, 0, 0.05) 27.67%, rgba(30, 30, 30, 0.5) 50.23%, rgba(0, 0, 0, 0.05) 75.75%, rgba(0, 0, 0, 0) 99.55%); */
 }
-
-/* .single-page::before {
-  @apply absolute left-[7%] translate-x-[-50%] w-[20%] h-full z-[50] pointer-events-none content-[''];
-  background: linear-gradient(89.43deg, rgba(0, 0, 0, 0) 0.54%, rgba(0, 0, 0, 0.05) 27.67%, rgba(30, 30, 30, 0.5) 50.23%, rgba(0, 0, 0, 0.05) 75.75%, rgba(0, 0, 0, 0) 99.55%);
-} */
 
 @keyframes spin-90 {
   0% {

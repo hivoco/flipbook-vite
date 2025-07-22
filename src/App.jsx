@@ -27,7 +27,11 @@ import {
   X,
   Youtube,
 } from "lucide-react";
-import { MdFullscreen, MdFullscreenExit } from "react-icons/md";
+import {
+  MdCleaningServices,
+  MdFullscreen,
+  MdFullscreenExit,
+} from "react-icons/md";
 import { FiChevronLeft, FiRotateCw } from "react-icons/fi";
 
 import { BASE_URL } from "../constant";
@@ -38,9 +42,24 @@ import { useResizeRerender } from "./hooks/useResizeRerender";
 import MenuPopup from "./components/MenuPopup";
 import HoverCarousel from "./components/HoverCarousel";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faL, faPhotoFilm } from "@fortawesome/free-solid-svg-icons";
+import { faPhotoFilm } from "@fortawesome/free-solid-svg-icons";
 import { faYoutube } from "@fortawesome/free-brands-svg-icons";
 import PlaySound from "./components/PlaySound";
+import { getYouTubeVideoId } from "./utility/utility";
+import RotatePhoneRequest from "./components/RotatePhoneRequest";
+import Loading from "./components/Loading";
+import { endSession, logEvent, startSession } from "./utility/analytics/api";
+
+import {
+  generateUniqueId,
+  getDeviceInfo,
+  getUserLocation,
+  getUTMParams,
+} from "./utility/analyticsHelpers";
+import useStateTimer from "./utility/analytics/hooks/useStateTimer";
+import { debounce } from "./utility/debounce";
+import usePingActiveUsers from "./utility/analytics/hooks/usePingActiveUsers";
+import usePageDwellTime from "./utility/analytics/hooks/usePageDwellTime";
 
 const App = () => {
   const bookRef = useRef();
@@ -70,7 +89,8 @@ const App = () => {
 
   // const [currentAudioIndex, setCurrentAudioIndex] = useState(0);
   const [currentPage, setCurrentPage] = useState(0);
-  console.log(currentPage, "currentPage");
+
+  const [lastPageNumber, setLastPageNumber] = useState(1);
 
   // const [permission, setPermission] = useState(false);
   // const [totalPages, setTotalPages] = useState();
@@ -81,53 +101,18 @@ const App = () => {
   // const [activeGotPoint, setActiveGotPoint] = useState(null);
   const [popupPosition, setPopupPosition] = useState({ x: 0, y: 0 });
   const [currentVideoSrc, setCurrentVideoSrc] = useState("");
+  const [isVideoVertical, setIsVideoVertical] = useState(false);
   const [isYouTubeVideo, setIsYouTubeVideo] = useState(false);
   const [youtubePlayer, setYoutubePlayer] = useState(null);
   const [showVideoPopup, setShowVideoPopup] = useState(false);
   const lastMouseY = useRef(0);
-
-  // const [hoverPosition, setHoverPosition] = useState({ x: 0, y: 0 });
-
-  // const [windowWidth, setWindowWidth] = useState(window.innerWidth);
-  // const [windowHeight, setWindowHeight] = useState(window.innerHeight);
-
-  // useEffect(() => {
-  //   const handleResize = () => {
-  //     setWindowWidth(window.innerWidth);
-  //     setWindowHeight(window.innerHeight);
-  //   };
-
-  //   window.addEventListener("resize", handleResize);
-  //   handleResize(); // set initially
-
-  //   return () => window.removeEventListener("resize", handleResize);
-  // }, []);
+  const [sessionId, setSessionId] = useState(null);
+  const [userId, setUserId] = useState(null);
+  const [flipbookCompleted, setFlipbookCompleted] = useState(false);
 
   useEffect(() => {
     const name = window.location.pathname.split("/").pop();
     setFlipbookName(name);
-    // let timer;
-
-    // const handleMouseMove = (e) => {
-    //   const currentY = e.clientY;
-    //   if (currentY > lastMouseY.current) {
-    //     // clearTimeout(timer);
-    //     setVisible(true);
-    //     // timer = setTimeout(() => {
-    //     //   setVisible(false);
-    //     // }, 5000);
-    //   } else {
-    //     setVisible(false);
-    //   }
-
-    //   lastMouseY.current = currentY;
-    // };
-
-    // document.addEventListener("mousemove", handleMouseMove);
-    // return () => {
-    //   // clearTimeout(timer);
-    //   document.removeEventListener("mousemove", handleMouseMove);
-    // };
   }, []);
 
   useEffect(() => {
@@ -148,7 +133,6 @@ const App = () => {
 
   const onFlip = useCallback((e) => {
     setCurrentPage(e.data);
-    console.log("Current page: " + e.data);
   }, []);
 
   const toggleFullscreen = () => {
@@ -327,7 +311,9 @@ const App = () => {
       });
 
       setCurrentVideoSrc(mediaUrl);
+
       setIsYouTubeVideo(isYoutube);
+
       setShowVideoPopup(true);
 
       // Pause any playing audio
@@ -357,7 +343,7 @@ const App = () => {
       );
       const data = await response.json();
 
-      console.log(data, "data");
+      // console.log(data, "data");
 
       setFlipbookImages(data?.data?.images);
       setContactInfo(data?.data?.contactInfo);
@@ -387,24 +373,6 @@ const App = () => {
     }
   }, [flipbookName]);
 
-  const getYouTubeVideoId = (url) => {
-    if (!url) return null;
-
-    // Handle different YouTube URL formats
-    const patterns = [
-      /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/,
-      /youtube\.com\/watch\?.*v=([^&\n?#]+)/,
-    ];
-
-    for (const pattern of patterns) {
-      const match = url.match(pattern);
-      if (match && match[1]) {
-        return match[1];
-      }
-    }
-    return null;
-  };
-
   const closeVideoPopup = () => {
     setShowVideoPopup(false);
     setCurrentVideoSrc("");
@@ -431,6 +399,12 @@ const App = () => {
     if (FlipSoundRef?.current && isPageFlipSoundOn) {
       FlipSoundRef.current?.play();
     }
+    setFlipbookCompleted(currentPage + 1 === flipbookImages.length);
+
+    sessionStorage.setItem(
+      "flipbookCompleted",
+      currentPage + 1 === flipbookImages.length
+    );
   }, [currentPage, isPageFlipSoundOn]);
 
   function displayPageNumInBar(pageNum) {
@@ -444,6 +418,94 @@ const App = () => {
 
     return `${pageNum + 1}-${pageNum + 2}/${total}`;
   }
+
+  async function startUserSession(flipbookName) {
+    let userId = localStorage.getItem("userId");
+    if (!userId) {
+      userId = generateUniqueId();
+      localStorage.setItem("userId", userId);
+    }
+    setUserId(userId);
+
+    const location = await getUserLocation();
+
+    const res = await startSession({
+      userId: userId,
+      flipbookId: flipbookName,
+      source: "direct",
+      referrer: "unknown",
+      utm: getUTMParams(),
+      device: getDeviceInfo(),
+      location: location,
+    });
+
+    const data = await res.sessionId;
+    console.log(data, "data");
+
+    sessionStorage.setItem("sessionId", data);
+    setSessionId(data);
+  }
+
+  async function endUserSession() {
+    endSession({
+      sessionId: sessionId || sessionStorage.getItem("sessionId"),
+      completed:
+        flipbookCompleted || sessionStorage.getItem("flipbookCompleted"),
+    });
+  }
+
+  useEffect(() => {
+    if (flipbookName) {
+      startUserSession(flipbookName);
+    }
+  }, [flipbookName]);
+
+  usePingActiveUsers({
+    sessionId: sessionId,
+    userId: userId,
+    flipbookId: flipbookName,
+  });
+
+  const timeInState = useStateTimer(currentPage);
+
+  usePageDwellTime({
+    currentPage: currentPage,
+    lastPageNumber: isPdfLandScape
+      ? [lastPageNumber]
+      : [lastPageNumber - 1, lastPageNumber],
+    sessionId: sessionId || sessionStorage.getItem("sessionId"),
+    timeInState: timeInState,
+  });
+
+  function log(eventType, mongoid, buttonText, coordinatesObj, url) {
+    logEvent({
+      sessionId: sessionId || sessionStorage.getItem("sessionId"),
+      userId: userId || localStorage.getItem("userId"),
+      flipbookId: flipbookName,
+      eventType: eventType,
+      pageNumber: currentPage,
+      timeOnPage: timeInState,
+      buttonId: mongoid,
+      buttonText: buttonText,
+      elementId: mongoid,
+      clickPosition: coordinatesObj,
+      value: url,
+    });
+  }
+
+  useEffect(() => {
+    const handleUnload = (e) => {
+      if (sessionId || sessionStorage.getItem("sessionId")) {
+        endUserSession();
+      }
+      e.preventDefault(); // Required for Chrome
+      e.returnValue = ""; // Required for older browsers
+    };
+    window.addEventListener("beforeunload", handleUnload);
+    return () => {
+      window.removeEventListener("beforeunload", handleUnload);
+    };
+  }, []);
 
   return (
     <div className="relative h-svh w-full flex flex-col overflow-hidden">
@@ -576,27 +638,6 @@ const App = () => {
                         <div className="absolute  z-40 pointer-events-none w-screen h-screen top-0 left-0 bg-black/70 " />
                       )}
 
-                      {/* {isPdfLandScape && (
-                        <>
-                          <ChevronFirst
-                            onClick={() =>
-                              bookRef.current.pageFlip().turnToPage(0)
-                            }
-                            className="absolute bottom-0 left-5 -translate-y-1/2  hidden lg:inline text-gray-400 "
-                            size={20}
-                          />
-
-                          <ChevronLeft
-                            size={28}
-                            className="absolute top-1/2 left-5 -translate-y-1/2  hidden lg:inline text-gray-400 "
-                            // className="absolute left-0 top-1/2 -translate-y-1/2"
-                            onClick={() =>
-                              bookRef.current.pageFlip().flipPrev()
-                            }
-                          />
-                        </>
-                      )} */}
-
                       <img
                         // shadow for landscape pdf
                         style={{
@@ -668,6 +709,7 @@ const App = () => {
                           let isWebsite = false;
                           let isYoutube = false;
                           let isVideo = false;
+                          let typeOfBtn;
 
                           // Determine button color and icon
                           let buttonColor = "bg-[#006AE6] hover:bg-[#006AE7]"; // Default for carousel
@@ -713,15 +755,19 @@ const App = () => {
                             icon = <Volume1 size={14} />;
 
                             if (isWhatsapp) {
+                              typeOfBtn = "Whatsapp";
                               buttonColor = "bg-green-600 hover:bg-green-700";
                               icon = <FaWhatsapp size={14} />;
                             } else if (isEmail) {
+                              typeOfBtn = "Email";
                               buttonColor = "bg-red-700 hover:bg-red-800";
                               icon = <Mail size={14} />;
                             } else if (isWebsite) {
-                              buttonColor = "bg-green-500 hover:bg-green-600";
+                              typeOfBtn = "Website";
+                              buttonColor = "bg-purple-600 hover:bg-purple-700";
                               icon = <ExternalLink className="" size={14} />;
                             } else if (isYoutube) {
+                              typeOfBtn = "Youtube";
                               buttonColor = "bg-red-600 ";
                               icon = (
                                 <FontAwesomeIcon
@@ -732,6 +778,7 @@ const App = () => {
                               );
                               // <Youtube size={14} />
                             } else if (isVideo) {
+                              typeOfBtn = "Video";
                               buttonColor = "bg-purple-500 hover:bg-purple-600";
                               icon = <Play size={14} />;
                             }
@@ -765,8 +812,18 @@ const App = () => {
                                   if (isYoutube) return;
                                   setDisplayOverlay(false);
                                 }}
-                                // turnToPage={}
                                 onClick={(e) => {
+                                  log(
+                                    "button_click",
+                                    obj?._id,
+                                    typeOfBtn,
+                                    {
+                                      x: obj?.coordinates?.x,
+                                      y: obj?.coordinates?.y,
+                                    },
+                                    obj?.link
+                                  );
+
                                   e.stopPropagation();
                                   e.preventDefault();
                                   setShowCarousel(obj._id);
@@ -781,6 +838,9 @@ const App = () => {
                                   }
                                   // events wont go to the parent page wont flip when we click this button
                                   if (obj?.link) {
+                                    setIsVideoVertical(obj.isVideoforMobile);
+                                    console.log(obj.isVideoforMobile, 842);
+
                                     handleMediaClick(obj?.link, e);
                                   }
                                 }}
@@ -802,7 +862,7 @@ const App = () => {
                                 showCarousel === obj._id &&
                                 obj?.pageNumber === index + 1 && (
                                   <div
-                                    className={`absolute z-50  opacity-100  transform translate-x-[0px] translate-y-[40px] `}
+                                    className={`absolute z-60  opacity-100  transform translate-x-0 translate-y-7 `}
                                     style={{
                                       left: `${obj?.coordinates?.x}%`,
                                       top: `${obj?.coordinates?.y}%`,
@@ -821,18 +881,12 @@ const App = () => {
                   ))}
                 </HTMLFlipBook>
               ) : (
-                <div className="size-5 flex flex-col items-center justify-center">
-                  <span>
-                    <LoaderCircle className="animate-spin" size={48} />
-                  </span>
-                  <p className="">Loading....</p>
-                </div>
+                <Loading />
               )}
             </div>
           </div>
 
           {/* Fixed Controls Bar */}
-
           <div
             onClick={() => {
               console.log("div clicked");
@@ -869,7 +923,7 @@ const App = () => {
                 onClick={() => {
                   audioRef.current.pause();
                   bookRef.current.pageFlip().flipPrev("top");
-                  // bookRef.current.pageFlip().turnToPrevPage();
+                  setLastPageNumber(currentPage + 1);
                 }}
                 className="text-white p-1 md:p-1.5 size-9 flex justify-center items-center  rounded-full border-2 border-white shadow-[0px_2px_2px_0px_#00000040]"
                 aria-label="Previous page"
@@ -887,6 +941,7 @@ const App = () => {
                 onClick={() => {
                   audioRef.current.pause();
                   bookRef.current.pageFlip().flipNext();
+                  setLastPageNumber(currentPage + 1);
                 }}
                 className="text-white p-1 md:p-1.5 size-9 flex justify-center items-center rounded-full border-2 border-white shadow-[0px_2px_2px_0px_#00000040]"
                 aria-label="Next page"
@@ -894,6 +949,7 @@ const App = () => {
                 <ChevronRight size={14} />
               </button>
             </div>
+            {console.log(currentPage, "currentPage")}
 
             <button
               onClick={(e) => {
@@ -942,7 +998,6 @@ const App = () => {
         </div>
       </div>
 
-      <audio ref={audioRef} src={audioSrc ? audioSrc : null}></audio>
       {showVideoPopup && (
         <>
           {/* Backdrop to close popup when clicking outside */}
@@ -952,12 +1007,19 @@ const App = () => {
               e.stopPropagation();
               e.preventDefault();
             }}
-            className="fixed z-50 bg-black rounded-lg shadow-2xl border-2 border-gray-600"
+            className="fixed z-50 bg-black rounded-lg shadow-2xl border-2 border-gray-600  flex items-center justify-center"
             style={{
               left: ` ${Math.min(popupPosition.x, window.innerWidth - 320)}px`, // Ensure it doesn't go off screen
-              top: `${Math.min(popupPosition.y, window.innerHeight - 240)}px`,
-              width: "300px",
-              height: "220px",
+              top: `${Math.min(popupPosition.y, window.innerHeight - 340)}px`,
+              // width: isVideoVertical ? "180px" : "300px",
+              // height: isVideoVertical ? "320px" : "220px",
+              width: isVideoVertical ? "180px" : "300px",
+              height: isVideoVertical ? "320px" : "270px",
+              // aspectRatio: isVideoVertical ? 9 / 16 : 16 / 9,
+
+              // width: isVideoVertical ? "270px" : "450px",
+              // height: isVideoVertical ? "480px" : "330px",
+              // minWidth: "25%",
             }}
           >
             <button
@@ -972,8 +1034,10 @@ const App = () => {
               <YouTube
                 videoId={getYouTubeVideoId(currentVideoSrc)}
                 opts={{
-                  height: "200",
-                  width: "290",
+                  // height: "200",
+                  // width: "290",
+                  width: isVideoVertical ? "180px" : "300px",
+                  height: isVideoVertical ? "320px" : "270px",
                   playerVars: {
                     autoplay: 1,
                     modestbranding: 1,
@@ -988,7 +1052,7 @@ const App = () => {
                 onPause={() => setVideoIsPlaying(false)}
                 onEnd={() => setVideoIsPlaying(false)}
                 className="rounded-lg overflow-hidden"
-                style={{ padding: "10px" }}
+                // style={{ padding: "10px" }}
               />
             ) : (
               <video
@@ -996,7 +1060,7 @@ const App = () => {
                 src={currentVideoSrc}
                 controls
                 autoPlay
-                className="w-full h-full rounded-lg"
+                className="w-full h-full  rounded-lg"
                 onPlay={() => setVideoIsPlaying(true)}
                 onPause={() => setVideoIsPlaying(false)}
                 onEnded={() => setVideoIsPlaying(false)}
@@ -1015,59 +1079,9 @@ const App = () => {
         />
       )}
 
-      {isOrientationPortrait && isPdfLandScape && (
-        <div className="fixed top-0 left-0 px-4 w-full bg-yellow-500 text-black flex items-center justify-center py-2 shadow-md z-50">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width={48}
-            height={48}
-            viewBox="0 0 48 48"
-          >
-            <g fill="none">
-              <path
-                fill="#25b7d3"
-                d="M24 47.998c13.255 0 24-10.745 24-24C48 10.746 37.255 0 24 0S0 10.745 0 23.999s10.745 23.999 24 23.999"
-              ></path>
-              <path
-                fill="#fff"
-                d="M37.964 32.144a2.327 2.327 0 0 1-2.327 2.327h-9.31A2.327 2.327 0 0 1 24 32.144V12.363a2.327 2.327 0 0 1 2.327-2.327h9.31a2.327 2.327 0 0 1 2.327 2.327z"
-              ></path>
-              <path
-                fill="#3e3e3f"
-                d="M37.091 14.398H24.873v15.709h12.218z"
-              ></path>
-              <path
-                fill="#cfd3d4"
-                d="M27.928 13.092a.437.437 0 1 0 0-.874a.437.437 0 0 0 0 .874m6.545-.438a.437.437 0 0 1-.437.436h-4.363a.437.437 0 0 1 0-.872h4.363c.241 0 .437.195.437.436"
-              ></path>
-              <path
-                fill="#5b5c5f"
-                d="m24.873 26.596l12.199-12.198H24.873z"
-              ></path>
-              <path
-                fill="#fff"
-                d="M11.782 18.763h-1.746l2.618 3.49l2.618-3.49h-1.745v-3.491q0-1.746 1.746-1.746h3.49v1.746l3.491-2.618l-3.49-2.618v1.745h-3.492q-3.49 0-3.49 3.49zm20.363 5.236a2.327 2.327 0 0 1 2.327 2.327v9.308a2.327 2.327 0 0 1-2.327 2.328H12.363a2.327 2.327 0 0 1-2.327-2.328v-9.308a2.327 2.327 0 0 1 2.327-2.327z"
-              ></path>
-              <path
-                fill="#3e3e3f"
-                d="M30.109 24.871h-15.71V37.09h15.71z"
-              ></path>
-              <path
-                fill="#cfd3d4"
-                d="M12.655 34.472a.437.437 0 1 0 0-.874a.437.437 0 0 0 0 .874m-.001-6.982c.241 0 .437.195.437.436v4.363a.436.436 0 0 1-.873 0v-4.363c0-.241.196-.437.436-.437m19.637 4.8a1.31 1.31 0 1 0 0-2.618a1.31 1.31 0 0 0 0 2.618"
-              ></path>
-              <path fill="#fff" d="M32.946 30.326h-1.31v1.31h1.31z"></path>
-              <path fill="#5b5c5f" d="m14.4 37.07l12.198-12.2H14.4z"></path>
-            </g>
-          </svg>
+      {isOrientationPortrait && isPdfLandScape && <RotatePhoneRequest />}
 
-          <span className="font-medium">
-            Please rotate your device to <strong>landscape</strong> for the best
-            experience.
-          </span>
-        </div>
-      )}
-
+      <audio ref={audioRef} src={audioSrc ? audioSrc : null}></audio>
       <audio ref={FlipSoundRef} src="/page-sound.mp3" />
     </div>
   );

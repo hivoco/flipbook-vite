@@ -39,7 +39,7 @@ const HoverCarousel = ({ images, isHovered }) => {
   }
 
   return (
-    <div className="h-40 w-40 relative z-50">
+    <div className="h-60 w-60 relative z-50">
       {/* Main carousel container */}
       <div className="relative  w-full h-full rounded-lg overflow-hidden shadow-lg bg-gray-100">
         {/* Image container */}
