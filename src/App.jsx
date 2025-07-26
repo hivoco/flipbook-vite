@@ -57,7 +57,6 @@ import {
   getUTMParams,
 } from "./utility/analyticsHelpers";
 import useStateTimer from "./utility/analytics/hooks/useStateTimer";
-import { debounce } from "./utility/debounce";
 import usePingActiveUsers from "./utility/analytics/hooks/usePingActiveUsers";
 import usePageDwellTime from "./utility/analytics/hooks/usePageDwellTime";
 
@@ -67,6 +66,16 @@ const App = () => {
   const divRef = useRef();
   const videoRef = useRef();
   const FlipSoundRef = useRef(null);
+  const [permission, setPermission] = useState(false);
+
+  // const {
+  //   recordingStatus,
+  //   audioURL,
+  //   error,
+  //   handleStart,
+  //   stopRecording,
+  //   clearRecording,
+  // } = useAudioRecorder({ permission, setPermission });
 
   const [audioSrc, setAudioSrc] = useState("");
   const [displayOverlay, setDisplayOverlay] = useState(false);
@@ -342,9 +351,10 @@ const App = () => {
         `${BASE_URL}/brochure/brochure/${flipbookName}`
       );
       const data = await response.json();
+      console.log(data, "datat");
 
       // console.log(data, "data");
-
+      setPermission(data?.data?.isRecordingEnable);
       setFlipbookImages(data?.data?.images);
       setContactInfo(data?.data?.contactInfo);
       setIsPdfLandScape(data?.data?.isLandScape);
@@ -949,7 +959,6 @@ const App = () => {
                 <ChevronRight size={14} />
               </button>
             </div>
-            {console.log(currentPage, "currentPage")}
 
             <button
               onClick={(e) => {
@@ -990,10 +999,13 @@ const App = () => {
               />
             </button>
 
-            {/* <AudioRecorder
-              permission={permission}
-              setPermission={setPermission}
-            /> */}
+            {permission && (
+              <AudioRecorder
+                permission={permission}
+                setPermission={setPermission}
+              />
+            )}
+
           </div>
         </div>
       </div>

@@ -19,19 +19,18 @@ const AudioRecorder = ({ permission, setPermission }) => {
     if (permission) {
       setTimeout(() => {
         // startRecording();
-        handleStart()
+        handleStart();
       }, 500);
     }
   }, [permission]);
 
-
-  useEffect(() => {
-    setPermission(true);
-  }, []);
+  // useEffect(() => {
+  //   setPermission(true);
+  // }, []);
 
   return (
     <div className=" flex flex-col justify-center items-center max-w-md ">
-      {!permission && (
+      {/* {!permission && (
         <button
           onClick={() => {
             requestPermission();
@@ -42,7 +41,7 @@ const AudioRecorder = ({ permission, setPermission }) => {
           <div className="w-4 h-4 rounded-full bg-red-600" />
           <span className="text-2xl text-white">REC</span>
         </button>
-      )}
+      )} */}
 
       {/* {error && (
         <div className="bg-red-50 border-l-4 border-red-600 p-4 mb-4 text-red-700">
